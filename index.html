@@ -447,17 +447,27 @@ async function startNewMatch() {
   const round     = parseInt(document.getElementById('round-select').value);
   const startHole = parseInt(document.getElementById('start-hole').value);
 
-  if (!db) { alert('No database connection. Check Supabase config.'); return; }
+  let sessionId = null;
 
-  // Create session in DB
-  const { data, error } = await db.from('sessions').insert({
-    label: label || 'Scramble Match',
-    played_at: new Date().toISOString().split('T')[0]
-  }).select().single();
+  if (db) {
+    // Try to create session in DB
+    const { data, error } = await db.from('sessions').insert({
+      label: label || 'Scramble Match',
+      played_at: new Date().toISOString().split('T')[0]
+    }).select().single();
 
-  if (error) { alert('Could not create match. Run the archive SQL migration first!'); return; }
+    if (error) {
+      console.warn('DB session create failed:', error.message, error.code);
+      // Fall back to a local UUID so the game still works
+      sessionId = 'local-' + Date.now();
+    } else {
+      sessionId = data.id;
+    }
+  } else {
+    sessionId = 'local-' + Date.now();
+  }
 
-  currentSessionId = data.id;
+  currentSessionId = sessionId;
   localStorage.setItem('scramble_session_id', currentSessionId);
   localStorage.setItem('scramble_session_label', label || 'Scramble Match');
   localStorage.setItem('scramble_session_date', new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}));
