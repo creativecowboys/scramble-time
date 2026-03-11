@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scramble Side Game</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a472a;
+    color: #fff;
+    min-height: 100vh;
+    padding: 12px;
+  }
+  h1 { text-align: center; font-size: 1.4em; margin-bottom: 8px; }
+  .setup, .game, .summary { max-width: 500px; margin: 0 auto; }
+
+  /* Setup screen */
+  .setup { text-align: center; padding-top: 40px; }
+  .setup label { display: block; margin: 16px 0 4px; font-size: 1.1em; }
+  .setup select, .setup button {
+    font-size: 1.1em; padding: 10px 20px; border-radius: 8px; border: none;
+  }
+  .setup select { background: #fff; color: #333; }
+  .setup button {
+    background: #4CAF50; color: #fff; margin-top: 20px; cursor: pointer;
+    font-weight: bold; padding: 14px 32px;
+  }
+  .setup button:hover { background: #45a049; }
+
+  /* Game screen */
+  .game { display: none; }
+  .hole-header {
+    text-align: center; background: rgba(0,0,0,0.3); border-radius: 12px;
+    padding: 12px; margin-bottom: 12px;
+  }
+  .hole-header h2 { font-size: 1.5em; }
+  .hole-header .round-label { opacity: 0.8; font-size: 0.9em; }
+  .hole-nav {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin: 6px 0;
+  }
+  .hole-nav button {
+    background: rgba(255,255,255,0.2); border: none; color: #fff;
+    font-size: 1.3em; width: 40px; height: 40px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .hole-nav button:hover { background: rgba(255,255,255,0.35); }
+  .hole-nav select {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    font-size: 1.1em; padding: 6px 10px; border-radius: 8px; text-align: center;
+  }
+  .hole-nav select option { background: #1a472a; color: #fff; }
+  .category {
+    background: rgba(255,255,255,0.1); border-radius: 12px;
+    padding: 12px; margin-bottom: 10px;
+  }
+  .category h3 { margin-bottom: 8px; font-size: 1em; opacity: 0.9; }
+  .players { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .player-btn {
+    padding: 12px 8px; border-radius: 8px; border: 2px solid transparent;
+    font-size: 1em; cursor: pointer; text-align: center;
+    background: rgba(255,255,255,0.15); color: #fff; transition: all 0.15s;
+  }
+  .player-btn.selected {
+    background: #4CAF50; border-color: #81C784; font-weight: bold;
+  }
+  .player-btn:active { transform: scale(0.95); }
+  .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .actions button {
+    flex: 1; padding: 14px; border: none; border-radius: 10px;
+    font-size: 1.1em; font-weight: bold; cursor: pointer;
+  }
+  .btn-done { background: #4CAF50; color: #fff; }
+  .btn-done:hover { background: #45a049; }
+  .btn-undo { background: rgba(255,255,255,0.2); color: #fff; }
+  .btn-finish { background: #FF9800; color: #fff; }
+
+  /* Summary screen */
+  .summary { display: none; text-align: center; }
+  .summary h2 { margin: 16px 0; }
+  .summary table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+    background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;
+  }
+  .summary th, .summary td {
+    padding: 10px 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .summary th { background: rgba(0,0,0,0.3); font-size: 0.85em; }
+  .summary td { font-size: 1em; }
+  .summary .total-row { background: rgba(0,0,0,0.2); font-weight: bold; }
+  .summary button {
+    margin: 8px 4px; padding: 12px 24px; border: none; border-radius: 8px;
+    font-size: 1em; cursor: pointer; font-weight: bold;
+  }
+  .btn-new-round { background: #4CAF50; color: #fff; }
+  .btn-back { background: rgba(255,255,255,0.2); color: #fff; }
+
+  .hole-log { margin-top: 10px; font-size: 0.8em; opacity: 0.6; text-align: center; }
+  .sync-status {
+    text-align: center; font-size: 0.75em; opacity: 0.5; margin-top: 4px;
+  }
+  .sync-status.error { color: #ff6b6b; opacity: 1; }
+
+  /* Shot log entries */
+  .shot-log {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;
+  }
+  .shot-entry {
+    background: rgba(76,175,80,0.3); border: 1px solid rgba(76,175,80,0.5);
+    border-radius: 6px; padding: 4px 10px; font-size: 0.85em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .shot-entry .remove-shot {
+    background: none; border: none; color: rgba(255,255,255,0.6);
+    cursor: pointer; font-size: 1.1em; padding: 0 2px; line-height: 1;
+  }
+  .shot-entry .remove-shot:hover { color: #ff6b6b; }
+  .shot-label { font-size: 0.75em; opacity: 0.6; margin-bottom: 4px; }
+  .chart-container {
+    background: rgba(0,0,0,0.3); border-radius: 12px; padding: 10px;
+    margin-bottom: 12px; position: relative; height: 220px;
+  }
+  .chart-container h3 {
+    text-align: center; font-size: 0.9em; opacity: 0.8; margin-bottom: 6px;
+  }
+  .scoreboard {
+    display: flex; gap: 6px; margin-bottom: 12px;
+  }
+  .scoreboard .sb-player {
+    flex: 1; text-align: center; border-radius: 10px; padding: 8px 4px;
+    background: rgba(0,0,0,0.3);
+  }
+  .scoreboard .sb-name {
+    font-size: 0.75em; font-weight: bold; margin-bottom: 2px;
+  }
+  .scoreboard .sb-score {
+    font-size: 1.4em; font-weight: bold;
+  }
+  .scoreboard .sb-rank {
+    font-size: 0.65em; opacity: 0.6; margin-top: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Setup Screen -->
+<div class="setup" id="setup">
+  <h1>Scramble Side Game</h1>
+  <p>Track whose ball is used each shot</p>
+
+  <label for="round-select">Round</label>
+  <select id="round-select">
+    <option value="1">Round 1</option>
+    <option value="2">Round 2</option>
+  </select>
+
+  <label for="start-hole">Starting Hole</label>
+  <select id="start-hole"></select>
+
+  <br>
+  <button onclick="startGame()">Start Tracking</button>
+
+  <div id="prev-results"></div>
+</div>
+
+<!-- Game Screen -->
+<div class="game" id="game">
+  <div class="hole-header">
+    <div class="round-label" id="round-label"></div>
+    <div class="hole-nav">
+      <button onclick="goToHole(-1)" title="Previous hole">&#9664;</button>
+      <select id="hole-select" onchange="jumpToHole(this.value)"></select>
+      <button onclick="goToHole(1)" title="Next hole">&#9654;</button>
+    </div>
+    <div class="hole-log" id="hole-log"></div>
+    <div class="sync-status" id="sync-status">Connected</div>
+  </div>
+
+  <div class="chart-container" id="chart-container">
+    <h3>Cumulative Score by Hole</h3>
+    <canvas id="scoreChart" height="200"></canvas>
+  </div>
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <div id="categories"></div>
+
+  <div class="actions">
+    <button class="btn-undo" onclick="undoLastShot()">Undo Last Shot</button>
+    <button class="btn-done" onclick="finishHole()">Done &rarr;</button>
+  </div>
+  <div class="actions">
+    <button class="btn-finish" onclick="finishRound()" style="flex:2">Finish Round</button>
+    <button onclick="clearCurrentRound()" style="flex:1;background:#d32f2f;color:#fff">Clear Round</button>
+  </div>
+</div>
+
+<!-- Summary Screen -->
+<div class="summary" id="summary"></div>
+
+<script>
+// ============================================================
+// SUPABASE CONFIG - Replace these with your project values
+// ============================================================
+const SUPABASE_URL = 'https://iueaqmqxyqpyidqeewja.supabase.co';      // e.g. https://abcdefg.supabase.co
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1ZWFxbXF4eXFweWlkcWVld2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTQxMjAsImV4cCI6MjA4ODY3MDEyMH0.8EPF94IZf-UjOo1ZrA5nnVbq1zDYVOSqkDKyzs5x8uM';
+
+let db = null;
+try {
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) {
+  console.warn('Supabase init failed - check SUPABASE_URL and SUPABASE_ANON_KEY');
+}
+// ============================================================
+
+const PLAYERS = ['Corey', 'Adam', 'David', 'Dan'];
+const CATEGORIES = [
+  { key: 'drives', label: 'Drives', multi: false },
+  { key: 'approach', label: 'Approach (>100 yds)', multi: true },
+  { key: 'chips', label: 'Chips (<100 yds)', multi: true },
+  { key: 'putts', label: 'Putts', multi: true }
+];
+
+let currentRound = 1;
+let currentHole = 1;
+let holeData = {}; // { drives: [], approach: [], chips: [], putts: [] }
+let roundData = {}; // { round: { hole: { ...selections, done: bool } } }
+let realtimeChannel = null;
+let roundStartHoles = JSON.parse(localStorage.getItem('roundStartHoles') || '{}');
+
+// Init start hole dropdown
+const startHoleSelect = document.getElementById('start-hole');
+for (let i = 1; i <= 18; i++) {
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = 'Hole ' + i;
+  startHoleSelect.appendChild(opt);
+}
+
+// --------------- Supabase Data Layer ---------------
+
+async function loadFromSupabase() {
+  if (!db) return;
+  const { data, error } = await db
+    .from('hole_scores')
+    .select('*');
+
+  if (error) {
+    console.error('Load error:', error);
+    setSyncStatus('error', 'Failed to load data');
+    return;
+  }
+
+  roundData = {};
+  data.forEach(row => {
+    if (!roundData[row.round]) roundData[row.round] = {};
+    roundData[row.round][row.hole] = {
+      drives: row.drives || [],
+      approach: row.approach || [],
+      chips: row.chips || [],
+      putts: row.putts || [],
+      done: row.done || false
+    };
+  });
+}
+
+async function saveCurrentHole() {
+  if (!db) return;
+  setSyncStatus('ok', 'Saving...');
+  const { error } = await db
+    .from('hole_scores')
+    .upsert({
+      round: currentRound,
+      hole: currentHole,
+      drives: holeData.drives || [],
+      approach: holeData.approach || [],
+      chips: holeData.chips || [],
+      putts: holeData.putts || [],
+      done: holeData.done || false
+    }, { onConflict: 'round,hole' });
+
+  if (error) {
+    console.error('Save error:', error);
+    setSyncStatus('error', 'Save failed');
+  } else {
+    setSyncStatus('ok', 'Saved');
+  }
+}
+
+async function deleteHoleFromSupabase(round, hole) {
+  if (!db) return;
+  const { error } = await db
+    .from('hole_scores')
+    .delete()
+    .eq('round', round)
+    .eq('hole', hole);
+
+  if (error) {
+    console.error('Delete error:', error);
+    setSyncStatus('error', 'Delete failed');
+  }
+}
+
+async function clearAllFromSupabase() {
+  if (!db) return;
+  const { error } = await db
+    .from('hole_scores')
+    .delete()
+    .gte('round', 1);
+
+  if (error) console.error('Clear error:', error);
+}
+
+function subscribeToRealtime() {
+  if (!db) return;
+  if (realtimeChannel) db.removeChannel(realtimeChannel);
+
+  realtimeChannel = db
+    .channel('hole_scores_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hole_scores' }, (payload) => {
+      handleRealtimeChange(payload);
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') setSyncStatus('ok', 'Live syncing');
+    });
+}
+
+function handleRealtimeChange(payload) {
+  const { eventType, new: newRow, old: oldRow } = payload;
+
+  if (eventType === 'INSERT' || eventType === 'UPDATE') {
+    if (!roundData[newRow.round]) roundData[newRow.round] = {};
+    roundData[newRow.round][newRow.hole] = {
+      drives: newRow.drives || [],
+      approach: newRow.approach || [],
+      chips: newRow.chips || [],
+      putts: newRow.putts || [],
+      done: newRow.done || false
+    };
+
+    // If we're viewing this hole, refresh the UI with the new data
+    if (document.getElementById('game').style.display === 'block' &&
+        newRow.round === currentRound && newRow.hole === currentHole) {
+      holeData = { ...roundData[currentRound][currentHole] };
+      renderHole();
+    }
+  } else if (eventType === 'DELETE') {
+    if (oldRow && roundData[oldRow.round]) {
+      delete roundData[oldRow.round][oldRow.hole];
+    }
+  }
+
+  if (document.getElementById('game').style.display === 'block') updateHoleCount();
+  if (document.getElementById('summary').style.display === 'block') viewSummary();
+}
+
+function setSyncStatus(type, msg) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'sync-status' + (type === 'error' ? ' error' : '');
+}
+
+function getCompletedCount(round) {
+  if (!roundData[round]) return 0;
+  return Object.values(roundData[round]).filter(h => h.done).length;
+}
+
+function updateHoleCount() {
+  const count = getCompletedCount(currentRound);
+  document.getElementById('hole-log').textContent = 'Holes completed: ' + count + '/18';
+}
+
+// --------------- UI Logic ---------------
+
+function showPreviousResults() {
+  const el = document.getElementById('prev-results');
+  const hasData = Object.keys(roundData).some(r => Object.keys(roundData[r]).length > 0);
+  if (!hasData) { el.innerHTML = ''; return; }
+  let html = '<div style="margin-top:24px"><h3>Previous Results</h3>';
+  html += '<button onclick="viewSummary()" style="margin:8px;padding:10px 20px;border:none;border-radius:8px;background:#FF9800;color:#fff;cursor:pointer;font-weight:bold">View Summary</button>';
+  html += '<button onclick="clearData()" style="margin:8px;padding:10px 20px;border:none;border-radius:8px;background:rgba(255,255,255,0.2);color:#fff;cursor:pointer">Clear All Data</button>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function clearData() {
+  if (confirm('Clear all saved data?')) {
+    await clearAllFromSupabase();
+    roundData = {};
+    showPreviousResults();
+  }
+}
+
+async function clearCurrentRound() {
+  if (!confirm('Clear ALL data for Round ' + currentRound + '? This cannot be undone.')) return;
+  if (!confirm('Are you REALLY sure? This will delete every hole in Round ' + currentRound + '.')) return;
+
+  // Delete each hole from Supabase
+  if (roundData[currentRound]) {
+    for (const hole of Object.keys(roundData[currentRound])) {
+      await deleteHoleFromSupabase(currentRound, parseInt(hole));
+    }
+  }
+  delete roundData[currentRound];
+  delete roundStartHoles[currentRound];
+  localStorage.setItem('roundStartHoles', JSON.stringify(roundStartHoles));
+
+  // Go back to setup
+  if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+  document.getElementById('game').style.display = 'none';
+  document.getElementById('setup').style.display = 'block';
+  showPreviousResults();
+}
+
+// Find the first in-progress (not done) hole for a round, or null
+function findInProgressHole(round) {
+  if (!roundData[round]) return null;
+  for (const hole of Object.keys(roundData[round])) {
+    if (!roundData[round][hole].done) return parseInt(hole);
+  }
+  return null;
+}
+
+function startGame() {
+  currentRound = parseInt(document.getElementById('round-select').value);
+  const startHole = parseInt(document.getElementById('start-hole').value);
+
+  if (!roundData[currentRound]) roundData[currentRound] = {};
+
+  // Remember the starting hole for chart ordering
+  if (!roundStartHoles[currentRound]) {
+    roundStartHoles[currentRound] = startHole;
+    localStorage.setItem('roundStartHoles', JSON.stringify(roundStartHoles));
+  }
+
+  // Find next hole to play: first in-progress, then first unplayed from startHole
+  const inProgress = findInProgressHole(currentRound);
+  if (inProgress !== null) {
+    currentHole = inProgress;
+  } else {
+    currentHole = startHole;
+    const existingHoles = Object.keys(roundData[currentRound]).map(Number);
+    if (existingHoles.length > 0) {
+      for (let i = 0; i < 18; i++) {
+        const h = ((startHole - 1 + i) % 18) + 1;
+        if (!existingHoles.includes(h)) {
+          currentHole = h;
+          break;
+        }
+      }
+    }
+  }
+
+  loadHoleAndShow();
+}
+
+function loadHoleAndShow() {
+  // Load existing data for this hole or start fresh
+  if (roundData[currentRound] && roundData[currentRound][currentHole]) {
+    holeData = { ...roundData[currentRound][currentHole] };
+  } else {
+    holeData = { drives: [], approach: [], chips: [], putts: [], done: false };
+  }
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('summary').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  renderHole();
+}
+
+function goToHole(direction) {
+  let next = currentHole + direction;
+  if (next < 1) next = 18;
+  if (next > 18) next = 1;
+  currentHole = next;
+  loadHoleAndShow();
+}
+
+function jumpToHole(hole) {
+  currentHole = parseInt(hole);
+  loadHoleAndShow();
+}
+
+function renderHole() {
+  document.getElementById('round-label').textContent = 'Round ' + currentRound;
+  updateHoleCount();
+  renderChart();
+
+  // Update hole selector
+  const sel = document.getElementById('hole-select');
+  sel.innerHTML = '';
+  for (let i = 1; i <= 18; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    const rd = roundData[currentRound];
+    const done = rd && rd[i] && rd[i].done;
+    const hasData = rd && rd[i];
+    opt.textContent = 'Hole ' + i + (done ? ' \u2713' : (hasData ? ' \u2022' : ''));
+    if (i === currentHole) opt.selected = true;
+    sel.appendChild(opt);
+  }
+
+
+  const container = document.getElementById('categories');
+  container.innerHTML = '';
+
+  CATEGORIES.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'category';
+
+    const shots = holeData[cat.key] || [];
+
+    let html = `<h3>${cat.label}</h3>`;
+
+    if (cat.multi) {
+      // Show logged shots
+      if (shots.length > 0) {
+        html += '<div class="shot-log">';
+        shots.forEach((player, idx) => {
+          html += `<div class="shot-entry">
+            <span>${idx + 1}. ${player}</span>
+            <button class="remove-shot" onclick="removeShot('${cat.key}', ${idx})">&times;</button>
+          </div>`;
+        });
+        html += '</div>';
+      }
+      // Always show buttons for next shot
+      html += `<div class="shot-label">Shot ${shots.length + 1}:</div>`;
+      html += `<div class="players" id="cat-${cat.key}"></div>`;
+    } else {
+      // Drives: single select, show as selected
+      html += `<div class="players" id="cat-${cat.key}"></div>`;
+    }
+
+    div.innerHTML = html;
+    container.appendChild(div);
+
+    // Add player buttons
+    const playersDiv = div.querySelector(`#cat-${cat.key}`);
+    PLAYERS.forEach(player => {
+      const btn = document.createElement('button');
+      btn.className = 'player-btn';
+      btn.textContent = player;
+
+      if (cat.multi) {
+        // Tap = record this shot immediately
+        btn.onclick = () => addShot(cat.key, player);
+      } else {
+        // Drives: toggle single selection
+        if (shots.length > 0 && shots[0] === player) {
+          btn.classList.add('selected');
+        }
+        btn.onclick = () => selectDrive(player, btn);
+      }
+      playersDiv.appendChild(btn);
+    });
+  });
+}
+
+async function selectDrive(player, btn) {
+  const current = holeData.drives;
+  if (current.length > 0 && current[0] === player) {
+    // Deselect
+    holeData.drives = [];
+  } else {
+    holeData.drives = [player];
+  }
+  // Update roundData
+  if (!roundData[currentRound]) roundData[currentRound] = {};
+  roundData[currentRound][currentHole] = { ...holeData };
+
+  await saveCurrentHole();
+  renderHole();
+}
+
+async function addShot(category, player) {
+  holeData[category].push(player);
+
+  if (!roundData[currentRound]) roundData[currentRound] = {};
+  roundData[currentRound][currentHole] = { ...holeData };
+
+  await saveCurrentHole();
+  renderHole();
+}
+
+async function removeShot(category, index) {
+  holeData[category].splice(index, 1);
+
+  if (!roundData[currentRound]) roundData[currentRound] = {};
+  roundData[currentRound][currentHole] = { ...holeData };
+
+  await saveCurrentHole();
+  renderHole();
+}
+
+async function undoLastShot() {
+  // Find the last category that has shots and remove the last one
+  const catOrder = ['putts', 'chips', 'approach', 'drives'];
+  for (const key of catOrder) {
+    if (holeData[key] && holeData[key].length > 0) {
+      holeData[key].pop();
+      if (!roundData[currentRound]) roundData[currentRound] = {};
+      roundData[currentRound][currentHole] = { ...holeData };
+      await saveCurrentHole();
+      renderHole();
+      return;
+    }
+  }
+}
+
+async function finishHole() {
+  holeData.done = true;
+  if (!roundData[currentRound]) roundData[currentRound] = {};
+  roundData[currentRound][currentHole] = { ...holeData };
+  await saveCurrentHole();
+
+  if (getCompletedCount(currentRound) >= 18) {
+    finishRound();
+    return;
+  }
+
+  // Move to next unplayed hole
+  const rd = roundData[currentRound];
+  let nextHole = currentHole >= 18 ? 1 : currentHole + 1;
+  for (let i = 0; i < 18; i++) {
+    if (!rd[nextHole] || !rd[nextHole].done) break;
+    nextHole = nextHole >= 18 ? 1 : nextHole + 1;
+  }
+  currentHole = nextHole;
+  loadHoleAndShow();
+}
+
+function finishRound() {
+  if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+  document.getElementById('game').style.display = 'none';
+  viewSummary();
+}
+
+function viewSummary() {
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game').style.display = 'none';
+  const el = document.getElementById('summary');
+  el.style.display = 'block';
+
+  let html = '<h1>Scramble Side Game</h1>';
+  const tallies = {};
+
+  for (const round of [1, 2]) {
+    if (!roundData[round] || Object.keys(roundData[round]).length === 0) continue;
+    tallies[round] = {};
+    PLAYERS.forEach(p => {
+      tallies[round][p] = {};
+      CATEGORIES.forEach(c => tallies[round][p][c.key] = 0);
+      tallies[round][p].total = 0;
+    });
+
+    for (const hole of Object.keys(roundData[round])) {
+      const hd = roundData[round][hole];
+      CATEGORIES.forEach(cat => {
+        if (hd[cat.key]) {
+          hd[cat.key].forEach(player => {
+            if (tallies[round][player]) {
+              tallies[round][player][cat.key]++;
+              tallies[round][player].total++;
+            }
+          });
+        }
+      });
+    }
+  }
+
+  let summaryCharts = [];
+  for (const round of [1, 2]) {
+    if (!tallies[round]) continue;
+    const doneCount = getCompletedCount(round);
+    const totalCount = Object.keys(roundData[round]).length;
+    html += `<h2>Round ${round} (${doneCount} done, ${totalCount} tracked)</h2>`;
+    const chartId = 'summary-chart-r' + round;
+    html += `<div class="chart-container"><canvas id="${chartId}" height="200"></canvas></div>`;
+    summaryCharts.push({ round, chartId });
+    html += buildTable(tallies[round]);
+  }
+
+  if (tallies[1] && tallies[2]) {
+    html += '<h2>Combined Total</h2>';
+    const combined = {};
+    PLAYERS.forEach(p => {
+      combined[p] = {};
+      CATEGORIES.forEach(c => {
+        combined[p][c.key] = (tallies[1][p][c.key] || 0) + (tallies[2][p][c.key] || 0);
+      });
+      combined[p].total = (tallies[1][p].total || 0) + (tallies[2][p].total || 0);
+    });
+    html += buildTable(combined);
+  }
+
+  html += '<div style="margin-top:16px">';
+  html += '<button class="btn-back" onclick="backToSetup()">Back to Setup</button>';
+  html += '</div>';
+
+  el.innerHTML = html;
+
+  // Render summary charts after DOM is updated
+  summaryCharts.forEach(({ round, chartId }) => {
+    renderSummaryChart(round, chartId);
+  });
+}
+
+function buildTable(tally) {
+  let html = '<table><tr><th>Player</th>';
+  CATEGORIES.forEach(c => html += `<th>${c.label.split(' ')[0]}</th>`);
+  html += '<th>Total</th></tr>';
+
+  PLAYERS.forEach(p => {
+    html += `<tr><td>${p}</td>`;
+    CATEGORIES.forEach(c => html += `<td>${tally[p][c.key]}</td>`);
+    html += `<td><strong>${tally[p].total}</strong></td></tr>`;
+  });
+
+  html += '</table>';
+  return html;
+}
+
+function backToSetup() {
+  document.getElementById('summary').style.display = 'none';
+  document.getElementById('setup').style.display = 'block';
+  showPreviousResults();
+}
+
+// --------------- Chart ---------------
+const PLAYER_COLORS = {
+  'Corey': '#4FC3F7',
+  'Adam':  '#FF7043',
+  'David': '#FFD54F',
+  'Dan':   '#CE93D8'
+};
+
+let scoreChart = null;
+
+function getHoleOrder(round) {
+  const start = parseInt(roundStartHoles[round]) || 1;
+  // Always return all 18 holes in play order: start, start+1, ..., 18, 1, 2, ..., start-1
+  const ordered = [];
+  for (let i = 0; i < 18; i++) {
+    ordered.push(((start - 1 + i) % 18) + 1);
+  }
+  return ordered;
+}
+
+function buildChartData(round) {
+  if (!roundData[round] || Object.keys(roundData[round]).length === 0) return null;
+  const holes = getHoleOrder(round);
+
+  const datasets = PLAYERS.map(player => {
+    let cumulative = 0;
+    const data = holes.map(hole => {
+      const hd = roundData[round] && roundData[round][hole];
+      if (!hd) return null; // no data yet for this hole
+      let count = 0;
+      CATEGORIES.forEach(cat => {
+        if (hd[cat.key]) {
+          count += hd[cat.key].filter(p => p === player).length;
+        }
+      });
+      cumulative += count;
+      return cumulative;
+    });
+
+    return {
+      label: player,
+      data: data,
+      borderColor: PLAYER_COLORS[player],
+      backgroundColor: PLAYER_COLORS[player],
+      borderWidth: 3,
+      pointRadius: 4,
+      pointBackgroundColor: PLAYER_COLORS[player],
+      tension: 0.2,
+      fill: false,
+      spanGaps: true
+    };
+  });
+
+  return {
+    labels: holes.map(h => h),
+    datasets: datasets
+  };
+}
+
+function renderScoreboard(round, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  // Calculate totals per player
+  const totals = {};
+  PLAYERS.forEach(p => totals[p] = 0);
+  if (roundData[round]) {
+    for (const hole of Object.keys(roundData[round])) {
+      const hd = roundData[round][hole];
+      CATEGORIES.forEach(cat => {
+        if (hd[cat.key]) {
+          hd[cat.key].forEach(p => { if (totals[p] !== undefined) totals[p]++; });
+        }
+      });
+    }
+  }
+
+  // Rank players (highest score = 1st)
+  const sorted = PLAYERS.slice().sort((a, b) => totals[b] - totals[a]);
+  const ranks = {};
+  sorted.forEach((p, i) => {
+    if (i > 0 && totals[p] === totals[sorted[i - 1]]) ranks[p] = ranks[sorted[i - 1]];
+    else ranks[p] = i + 1;
+  });
+  const rankLabels = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' };
+
+  el.innerHTML = PLAYERS.map(p =>
+    `<div class="sb-player">
+      <div class="sb-name" style="color:${PLAYER_COLORS[p]}">${p}</div>
+      <div class="sb-score" style="color:${PLAYER_COLORS[p]}">${totals[p]}</div>
+      <div class="sb-rank">${rankLabels[ranks[p]]}</div>
+    </div>`
+  ).join('');
+}
+
+function renderChart() {
+  const canvas = document.getElementById('scoreChart');
+  if (!canvas) return;
+
+  renderScoreboard(currentRound, 'scoreboard');
+
+  const chartData = buildChartData(currentRound);
+  if (!chartData || chartData.labels.length === 0) {
+    if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+    return;
+  }
+
+  if (scoreChart) {
+    scoreChart.data = chartData;
+    scoreChart.update();
+    return;
+  }
+
+  scoreChart = new Chart(canvas, {
+    type: 'line',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 8 }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.7)', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: 'rgba(255,255,255,0.7)',
+            font: { size: 10 },
+            stepSize: 1
+          },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        }
+      }
+    }
+  });
+}
+
+function renderSummaryChart(round, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const chartData = buildChartData(round);
+  if (!chartData) return;
+
+  new Chart(canvas, {
+    type: 'line',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 8 }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.7)', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: 'rgba(255,255,255,0.7)', font: { size: 10 }, stepSize: 1 },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        }
+      }
+    }
+  });
+}
+
+// --------------- Init ---------------
+async function init() {
+  await loadFromSupabase();
+  subscribeToRealtime();
+
+  // Auto-resume: find a round that's in progress (has data but < 18 done)
+  for (const round of [1, 2]) {
+    if (!roundData[round] || Object.keys(roundData[round]).length === 0) continue;
+    const doneCount = getCompletedCount(round);
+    if (doneCount >= 18) continue; // round fully complete, skip
+
+    currentRound = round;
+
+    // First check for an in-progress (not done) hole
+    const inProgress = findInProgressHole(round);
+    if (inProgress !== null) {
+      currentHole = inProgress;
+    } else {
+      // All tracked holes are done but round isn't complete - go to next unplayed hole
+      const start = parseInt(roundStartHoles[round]) || 1;
+      const rd = roundData[round];
+      currentHole = start;
+      for (let i = 0; i < 18; i++) {
+        const h = ((start - 1 + i) % 18) + 1;
+        if (!rd[h] || !rd[h].done) { currentHole = h; break; }
+      }
+    }
+
+    loadHoleAndShow();
+    return;
+  }
+
+  // No active round, show setup
+  showPreviousResults();
+}
+
+init();
+</script>
+</body>
+</html>
