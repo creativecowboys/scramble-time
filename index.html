@@ -613,8 +613,16 @@ function renderHole(){
     const pd=div.querySelector(`#cat-${cat.key}`);
     PLAYERS.forEach(player=>{
       const btn=document.createElement('button');btn.className='player-btn';btn.textContent=player;btn.setAttribute('data-player',player);
-      if(cat.multi){btn.onclick=()=>addShot(cat.key,player);}
-      else{if(shots.length>0&&shots[0]===player)btn.classList.add('selected');btn.onclick=()=>selectDrive(player);}
+      if(cat.multi){
+        btn.onclick=()=>{
+          const col=PLAYER_COLORS[player]||'#fff';
+          btn.style.background=col+'30';
+          btn.style.borderColor=col;
+          btn.style.color=col;
+          btn.style.fontWeight='800';
+          addShot(cat.key,player);
+        };
+      } else{if(shots.length>0&&shots[0]===player)btn.classList.add('selected');btn.onclick=()=>selectDrive(player);}
       pd.appendChild(btn);});
   });
 }
