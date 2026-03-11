@@ -506,6 +506,7 @@ async function archiveAndNew() {
   localStorage.removeItem('scramble_session_id');
   localStorage.removeItem('scramble_session_label');
   localStorage.removeItem('scramble_session_date');
+  localStorage.removeItem('scramble_round_data');
   localStorage.setItem('roundStartHoles','{}');
   roundData = {}; roundStartHoles = {};
   if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
@@ -514,12 +515,30 @@ async function archiveAndNew() {
 }
 
 // ══════════════════════════════════════════════
-// SUPABASE
+// SUPABASE + LOCAL PERSISTENCE
 // ══════════════════════════════════════════════
+function isLocalSession() { return !currentSessionId || currentSessionId.startsWith('local-'); }
+
+function saveLocalData() {
+  try { localStorage.setItem('scramble_round_data', JSON.stringify(roundData)); } catch(e) {}
+}
+
+function loadLocalData() {
+  try {
+    const d = localStorage.getItem('scramble_round_data');
+    if (d) roundData = JSON.parse(d);
+  } catch(e) {}
+}
+
 async function loadFromSupabase() {
-  if (!db || !currentSessionId) return;
+  if (isLocalSession()) { loadLocalData(); return; }
+  if (!db) { loadLocalData(); return; }
   const { data, error } = await db.from('hole_scores').select('*').eq('session_id', currentSessionId);
-  if (error) { setSyncStatus('error','Load failed'); return; }
+  if (error || !data || data.length === 0) {
+    setSyncStatus('error', error ? 'Load failed' : 'Offline');
+    loadLocalData(); // fall back to localStorage
+    return;
+  }
   roundData = {};
   data.forEach(row => {
     if (!roundData[row.round]) roundData[row.round] = {};
@@ -527,18 +546,33 @@ async function loadFromSupabase() {
       drives:row.drives||[], approach:row.approach||[], chips:row.chips||[], putts:row.putts||[], done:row.done||false
     };
   });
+  saveLocalData(); // keep local in sync
 }
 
 async function saveCurrentHole() {
-  if (!db || !currentSessionId) return;
+  // Always persist to localStorage first (instant, never fails)
+  if (!roundData[currentRound]) roundData[currentRound] = {};
+  roundData[currentRound][currentHole] = {...holeData};
+  saveLocalData();
+
+  // Skip DB if no real session or no connection
+  if (isLocalSession() || !db) {
+    setSyncStatus('ok', 'Saved locally ✓');
+    return;
+  }
+
   setSyncStatus('ok','Saving…');
   const { error } = await db.from('hole_scores').upsert({
     session_id: currentSessionId, round: currentRound, hole: currentHole,
     drives:holeData.drives||[], approach:holeData.approach||[],
     chips:holeData.chips||[], putts:holeData.putts||[], done:holeData.done||false
   }, { onConflict:'session_id,round,hole' });
-  if (error) setSyncStatus('error','Save failed');
-  else       setSyncStatus('ok','Synced ✓');
+  if (error) {
+    console.warn('DB save error:', error.message);
+    setSyncStatus('ok', 'Saved locally ✓');
+  } else {
+    setSyncStatus('ok','Synced ✓');
+  }
 }
 
 async function deleteHoleFromDB(round, hole) {
@@ -834,7 +868,7 @@ async function init() {
   showScreen('setup');
   if (currentSessionId) {
     await loadFromSupabase();
-    subscribeToRealtime();
+    if (!isLocalSession()) subscribeToRealtime();
     // Check if there's an in-progress hole to auto-resume
     for(const round of[1,2]){
       if(!roundData[round]||Object.keys(roundData[round]).length===0)continue;
