@@ -11,1069 +11,736 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-  :root {
-    --bg:          #0a1a0f;
-    --bg2:         #0f2416;
-    --surface:     rgba(255,255,255,0.06);
-    --surface-hov: rgba(255,255,255,0.11);
-    --border:      rgba(255,255,255,0.1);
-    --green:       #00c853;
-    --green-dim:   #00a844;
-    --gold:        #ffd700;
-    --gold-dim:    #d4a800;
-    --red:         #ff4f4f;
-    --text:        #f0f0f0;
-    --text-muted:  rgba(255,255,255,0.45);
-    --radius:      14px;
-    --radius-sm:   8px;
-    --shadow:      0 8px 32px rgba(0,0,0,0.45);
-  }
+:root {
+  --bg:#0a1a0f; --bg2:#0f2416; --surface:rgba(255,255,255,0.06);
+  --surface-hov:rgba(255,255,255,0.11); --border:rgba(255,255,255,0.1);
+  --green:#00c853; --green-dim:#00a844; --gold:#ffd700; --gold-dim:#d4a800;
+  --red:#ff4f4f; --text:#f0f0f0; --text-muted:rgba(255,255,255,0.45);
+  --radius:14px; --radius-sm:8px; --shadow:0 8px 32px rgba(0,0,0,0.45);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);
+  min-height:100dvh;padding:env(safe-area-inset-top,12px) 12px env(safe-area-inset-bottom,16px);
+  background-image:radial-gradient(ellipse at 20% 0%,rgba(0,200,83,.12) 0%,transparent 60%),
+    radial-gradient(ellipse at 80% 100%,rgba(0,150,60,.08) 0%,transparent 50%);}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── SETUP ── */
+.setup{max-width:420px;margin:0 auto;padding-top:28px;text-align:center;}
+.logo-icon{font-size:2.8rem;display:block;margin-bottom:6px;filter:drop-shadow(0 0 20px rgba(0,200,83,.5));}
+.logo-title{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:3px;
+  background:linear-gradient(135deg,#fff 30%,var(--green));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
+.logo-sub{font-size:.75rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+.logo-wrap{margin-bottom:22px;}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px 20px;backdrop-filter:blur(12px);box-shadow:var(--shadow);margin-bottom:12px;}
+.field-label{display:block;font-size:.7rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:7px;text-align:left;}
+.setup-select,.setup-input{width:100%;background:rgba(255,255,255,.08);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--radius-sm);font-size:1rem;
+  font-family:'Inter',sans-serif;font-weight:600;padding:11px 14px;}
+.setup-select{appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:calc(100% - 12px) center;padding-right:38px;}
+.setup-select option,.setup-input::placeholder{background:#0f2416;color:rgba(255,255,255,.4);}
+.setup-select:focus,.setup-input:focus{outline:none;border-color:var(--green);}
+.field-group{margin-bottom:16px;}
+.btn-start{width:100%;background:linear-gradient(135deg,var(--green),var(--green-dim));color:#fff;
+  border:none;border-radius:var(--radius-sm);font-size:1rem;font-family:'Inter',sans-serif;
+  font-weight:700;padding:15px;cursor:pointer;box-shadow:0 4px 20px rgba(0,200,83,.35);
+  transition:all .2s;margin-top:2px;}
+.btn-start:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(0,200,83,.45);}
+.btn-start:active{transform:scale(.98);}
+.setup-row{display:flex;gap:10px;margin-bottom:12px;}
+.setup-row button{flex:1;padding:12px;border-radius:var(--radius-sm);font-size:.875rem;
+  font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid var(--border);}
+.btn-archives{background:rgba(255,215,0,.1);color:var(--gold);border-color:rgba(255,215,0,.25);}
+.btn-archives:hover{background:rgba(255,215,0,.2);}
+.btn-secondary{background:var(--surface);color:var(--text-muted);}
+.btn-secondary:hover{background:var(--surface-hov);color:var(--text);}
+.active-session-card{background:rgba(0,200,83,.08);border:1px solid rgba(0,200,83,.25);
+  border-radius:var(--radius);padding:16px 18px;text-align:left;margin-bottom:12px;}
+.active-session-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--green);font-weight:700;margin-bottom:4px;}
+.active-session-name{font-size:1rem;font-weight:700;margin-bottom:2px;}
+.active-session-meta{font-size:.78rem;color:var(--text-muted);}
 
-  body {
-    font-family: 'Inter', -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding: env(safe-area-inset-top, 12px) 12px env(safe-area-inset-bottom, 12px);
-    background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(0,200,83,0.12) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 100%, rgba(0,150,60,0.08) 0%, transparent 50%);
-  }
+/* ── GAME ── */
+.game{display:none;max-width:500px;margin:0 auto;}
+.hole-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px 10px;margin-bottom:10px;backdrop-filter:blur(12px);}
+.round-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,200,83,.12);
+  border:1px solid rgba(0,200,83,.25);border-radius:20px;padding:3px 12px 3px 8px;
+  font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:8px;}
+.round-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pdot 2s infinite;}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.3}}
+.hole-nav{display:flex;align-items:center;justify-content:center;gap:10px;}
+.hole-nav-btn{background:var(--surface-hov);border:1px solid var(--border);color:var(--text);
+  width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:.95rem;transition:all .15s;flex-shrink:0;}
+.hole-nav-btn:hover{background:rgba(0,200,83,.2);border-color:rgba(0,200,83,.4);}
+.hole-select{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;
+  background:transparent;color:var(--text);border:none;text-align:center;cursor:pointer;
+  appearance:none;-webkit-appearance:none;padding:0 8px;}
+.hole-select option{background:#0f2416;font-family:'Inter',sans-serif;font-size:1rem;}
+.hole-select:focus{outline:none;}
+.header-meta{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:.7rem;}
+.hole-log{color:var(--text-muted);}
+.sync-status{color:var(--green);font-weight:600;}
+.sync-status.error{color:var(--red);}
+.scoreboard{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
+.sb-player{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 4px;text-align:center;backdrop-filter:blur(8px);transition:all .2s;}
+.sb-player.leader{border-color:rgba(255,215,0,.35);background:rgba(255,215,0,.07);}
+.sb-name{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.sb-score{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;line-height:1;}
+.sb-rank{font-size:.58rem;color:var(--text-muted);margin-top:1px;}
+.chart-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px;margin-bottom:10px;backdrop-filter:blur(8px);}
+.chart-title{font-size:.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-muted);text-align:center;margin-bottom:8px;}
+.chart-wrap{position:relative;height:175px;}
+.category{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:13px;margin-bottom:8px;backdrop-filter:blur(8px);transition:border-color .2s;}
+.category:focus-within{border-color:rgba(0,200,83,.3);}
+.cat-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.cat-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;background:rgba(0,200,83,.12);border:1px solid rgba(0,200,83,.2);}
+.cat-name{font-size:.76rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);}
+.shot-log{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;}
+.shot-entry{display:flex;align-items:center;gap:5px;background:rgba(0,200,83,.1);
+  border:1px solid rgba(0,200,83,.22);border-radius:20px;padding:3px 9px 3px 8px;font-size:.78rem;font-weight:600;}
+.shot-num{font-size:.62rem;color:var(--text-muted);}
+.remove-shot{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.95rem;
+  padding:0;line-height:1;display:flex;align-items:center;transition:color .15s;}
+.remove-shot:hover{color:var(--red);}
+.shot-label{font-size:.66rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:6px;}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.player-btn{padding:12px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:.88rem;
+  font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;text-align:center;
+  background:var(--surface-hov);color:var(--text);transition:all .15s;}
+.player-btn:active{transform:scale(.97);}
+.player-btn:hover{border-color:rgba(255,255,255,.2);}
+.player-btn[data-player="Dave D"].selected{background:rgba(79,195,247,.15);border-color:#4fc3f7;color:#4fc3f7;}
+.player-btn[data-player="Daniel"].selected{background:rgba(255,112,67,.15);border-color:#ff7043;color:#ff7043;}
+.player-btn[data-player="Dave C"].selected{background:rgba(255,213,79,.15);border-color:#ffd54f;color:#ffd54f;}
+.player-btn[data-player="Wes"].selected{background:rgba(206,147,216,.15);border-color:#ce93d8;color:#ce93d8;}
+.actions{display:flex;gap:8px;margin-top:10px;}
+.actions button{flex:1;padding:13px;border:none;border-radius:var(--radius-sm);font-size:.93rem;
+  font-family:'Inter',sans-serif;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-done{background:linear-gradient(135deg,var(--green),var(--green-dim));color:#fff;
+  box-shadow:0 4px 16px rgba(0,200,83,.3);}
+.btn-done:hover{transform:translateY(-1px);}
+.btn-undo{background:var(--surface-hov);color:var(--text);border:1px solid var(--border);}
+.btn-finish{background:linear-gradient(135deg,var(--gold),var(--gold-dim));color:#000;font-weight:800;}
+.btn-danger{background:rgba(255,79,79,.12);color:var(--red);border:1px solid rgba(255,79,79,.25);}
+.btn-danger:hover{background:rgba(255,79,79,.22);}
 
-  /* ============================================================
-     SETUP SCREEN
-  ============================================================ */
-  .setup {
-    max-width: 420px;
-    margin: 0 auto;
-    padding-top: 32px;
-    text-align: center;
-  }
+/* ── SUMMARY ── */
+.summary{display:none;max-width:500px;margin:0 auto;padding-top:14px;}
+.summary-hero{text-align:center;margin-bottom:20px;}
+.summary-hero h1{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:3px;
+  background:linear-gradient(135deg,#fff 30%,var(--green));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;}
+.summary-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;margin-bottom:12px;backdrop-filter:blur(8px);}
+.summary-section h2{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;
+  color:var(--green);margin-bottom:12px;}
+.summary table{width:100%;border-collapse:collapse;}
+.summary th{font-size:.63rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text-muted);padding:7px 5px;text-align:center;border-bottom:1px solid var(--border);}
+.summary td{padding:9px 5px;text-align:center;font-size:.88rem;font-weight:500;
+  border-bottom:1px solid rgba(255,255,255,.05);}
+.summary tr:last-child td{border-bottom:none;}
+.summary .winner-row td{font-weight:800;color:var(--gold);}
+.summary td:first-child{text-align:left;font-weight:700;}
+.summary-actions{display:flex;gap:10px;margin-top:18px;padding-bottom:8px;}
+.summary-actions button{flex:1;padding:13px;border:none;border-radius:var(--radius-sm);font-size:.93rem;
+  font-family:'Inter',sans-serif;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-archive-done{background:linear-gradient(135deg,var(--gold),var(--gold-dim));color:#000;font-weight:800;}
+.btn-back-setup{background:var(--surface-hov);color:var(--text);border:1px solid var(--border);}
 
-  .logo-wrap {
-    margin-bottom: 28px;
-  }
-  .logo-icon {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 8px;
-    filter: drop-shadow(0 0 20px rgba(0,200,83,0.5));
-  }
-  .logo-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3rem;
-    letter-spacing: 3px;
-    background: linear-gradient(135deg, #fff 30%, var(--green));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1;
-  }
-  .logo-sub {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-top: 4px;
-  }
+/* ── ARCHIVES ── */
+.archives{display:none;max-width:500px;margin:0 auto;padding-top:14px;}
+.archives-hero{text-align:center;margin-bottom:20px;}
+.archives-hero h1{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:3px;
+  background:linear-gradient(135deg,#fff 30%,var(--gold));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;}
+.archives-hero p{font-size:.78rem;color:var(--text-muted);margin-top:4px;}
+.archive-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .2s;backdrop-filter:blur(8px);}
+.archive-card:hover{background:var(--surface-hov);border-color:rgba(255,215,0,.25);transform:translateY(-1px);}
+.archive-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.archive-date{font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:3px;}
+.archive-name{font-size:1rem;font-weight:700;}
+.archive-arrow{font-size:1.2rem;color:var(--text-muted);}
+.archive-rounds{display:flex;gap:8px;margin-bottom:10px;}
+.round-pill{font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:20px;
+  background:rgba(255,255,255,.07);border:1px solid var(--border);color:var(--text-muted);}
+.round-pill.done{background:rgba(0,200,83,.12);border-color:rgba(0,200,83,.3);color:var(--green);}
+.archive-players{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+.archive-player{text-align:center;background:rgba(0,0,0,.2);border-radius:6px;padding:6px 4px;}
+.ap-name{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
+.ap-score{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;line-height:1;}
+.archive-leader-badge{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;
+  color:var(--gold);background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.2);
+  border-radius:20px;padding:3px 10px;margin-top:8px;}
+.empty-archives{text-align:center;padding:40px 20px;color:var(--text-muted);}
+.empty-archives .empty-icon{font-size:3rem;margin-bottom:12px;display:block;opacity:.4;}
+.loading-msg{text-align:center;padding:30px;color:var(--text-muted);}
+.btn-back-archives{background:var(--surface-hov);color:var(--text);border:1px solid var(--border);
+  width:100%;padding:13px;border-radius:var(--radius-sm);font-size:.93rem;font-family:'Inter',sans-serif;
+  font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px;}
+.btn-back-archives:hover{background:rgba(255,255,255,.13);}
 
-  .setup-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 28px 24px;
-    backdrop-filter: blur(12px);
-    box-shadow: var(--shadow);
-    margin-bottom: 16px;
-  }
-
-  .field-label {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-    text-align: left;
-  }
-
-  .setup-select {
-    width: 100%;
-    background: rgba(255,255,255,0.08);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 1rem;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    padding: 12px 16px;
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: calc(100% - 12px) center;
-    padding-right: 40px;
-  }
-  .setup-select option { background: #0f2416; }
-  .setup-select:focus { outline: none; border-color: var(--green); }
-
-  .field-group { margin-bottom: 18px; }
-
-  .btn-start {
-    width: 100%;
-    background: linear-gradient(135deg, var(--green), var(--green-dim));
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 1.05rem;
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    padding: 16px;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0,200,83,0.35);
-    transition: all 0.2s;
-    margin-top: 4px;
-  }
-  .btn-start:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(0,200,83,0.45); }
-  .btn-start:active { transform: scale(0.98); }
-
-  /* prev results */
-  #prev-results { margin-top: 16px; }
-  .prev-btn-row {
-    display: flex; gap: 10px;
-  }
-  .prev-btn-row button {
-    flex: 1; padding: 12px; border: 1px solid var(--border);
-    border-radius: var(--radius-sm); font-size: 0.9rem;
-    font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-view-summary { background: rgba(255,215,0,0.15); color: var(--gold); border-color: rgba(255,215,0,0.25); }
-  .btn-view-summary:hover { background: rgba(255,215,0,0.25); }
-  .btn-clear-all { background: var(--surface); color: var(--text-muted); }
-  .btn-clear-all:hover { background: var(--surface-hov); color: var(--text); }
-
-  /* ============================================================
-     GAME SCREEN
-  ============================================================ */
-  .game { display: none; max-width: 500px; margin: 0 auto; }
-
-  /* Hole Header */
-  .hole-header {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px 12px;
-    margin-bottom: 10px;
-    backdrop-filter: blur(12px);
-  }
-
-  .round-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(0,200,83,0.12); border: 1px solid rgba(0,200,83,0.25);
-    border-radius: 20px; padding: 3px 12px 3px 8px;
-    font-size: 0.72rem; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; color: var(--green);
-    margin-bottom: 10px;
-  }
-  .round-badge-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green);
-    animation: pulse-dot 2s infinite;
-  }
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .hole-nav {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-  }
-  .hole-nav-btn {
-    background: var(--surface-hov); border: 1px solid var(--border);
-    color: var(--text); width: 38px; height: 38px; border-radius: 50%;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; transition: all 0.15s; flex-shrink: 0;
-  }
-  .hole-nav-btn:hover { background: rgba(0,200,83,0.2); border-color: rgba(0,200,83,0.4); }
-
-  .hole-select {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.6rem;
-    letter-spacing: 1px;
-    background: transparent; color: var(--text);
-    border: none; text-align: center; cursor: pointer;
-    appearance: none; -webkit-appearance: none;
-    padding: 0 8px;
-  }
-  .hole-select option { background: #0f2416; font-family: 'Inter', sans-serif; font-size: 1rem; }
-  .hole-select:focus { outline: none; }
-
-  .header-meta {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-top: 8px; font-size: 0.72rem;
-  }
-  .hole-log { color: var(--text-muted); }
-  .sync-status { color: var(--green); font-weight: 600; }
-  .sync-status.error { color: var(--red); }
-
-  /* Scoreboard */
-  .scoreboard {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 6px; margin-bottom: 10px;
-  }
-  .sb-player {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 10px 6px; text-align: center;
-    backdrop-filter: blur(8px); transition: all 0.2s;
-  }
-  .sb-player.leader {
-    border-color: rgba(255,215,0,0.35);
-    background: rgba(255,215,0,0.07);
-    box-shadow: 0 0 12px rgba(255,215,0,0.1);
-  }
-  .sb-name { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-  .sb-score { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; line-height: 1; }
-  .sb-rank { font-size: 0.6rem; color: var(--text-muted); margin-top: 2px; }
-
-  /* Chart */
-  .chart-section {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 12px;
-    margin-bottom: 10px; backdrop-filter: blur(8px);
-  }
-  .chart-title {
-    font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
-    text-transform: uppercase; color: var(--text-muted);
-    text-align: center; margin-bottom: 8px;
-  }
-  .chart-wrap { position: relative; height: 180px; }
-
-  /* Category cards */
-  .category {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 14px;
-    margin-bottom: 8px; backdrop-filter: blur(8px);
-    transition: border-color 0.2s;
-  }
-  .category:focus-within { border-color: rgba(0,200,83,0.3); }
-
-  .cat-header {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 10px;
-  }
-  .cat-icon {
-    width: 28px; height: 28px; border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.9rem;
-    background: rgba(0,200,83,0.12); border: 1px solid rgba(0,200,83,0.2);
-  }
-  .cat-name {
-    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px;
-    text-transform: uppercase; color: var(--text-muted);
-  }
-
-  /* Shot log */
-  .shot-log { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
-  .shot-entry {
-    display: flex; align-items: center; gap: 5px;
-    background: rgba(0,200,83,0.12); border: 1px solid rgba(0,200,83,0.25);
-    border-radius: 20px; padding: 4px 10px 4px 8px;
-    font-size: 0.8rem; font-weight: 600;
-  }
-  .shot-num { font-size: 0.65rem; color: var(--text-muted); }
-  .remove-shot {
-    background: none; border: none; color: var(--text-muted);
-    cursor: pointer; font-size: 1rem; padding: 0; line-height: 1;
-    display: flex; align-items: center;
-    transition: color 0.15s;
-  }
-  .remove-shot:hover { color: var(--red); }
-
-  .shot-label {
-    font-size: 0.68rem; font-weight: 600; letter-spacing: 0.5px;
-    text-transform: uppercase; color: var(--text-muted);
-    margin-bottom: 6px;
-  }
-
-  /* Player buttons */
-  .players { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .player-btn {
-    padding: 13px 8px; border-radius: var(--radius-sm);
-    border: 1px solid var(--border); font-size: 0.9rem;
-    font-family: 'Inter', sans-serif; font-weight: 600;
-    cursor: pointer; text-align: center;
-    background: var(--surface-hov); color: var(--text);
-    transition: all 0.15s; position: relative; overflow: hidden;
-  }
-  .player-btn::before {
-    content: ''; position: absolute; inset: 0;
-    opacity: 0; transition: opacity 0.15s;
-  }
-  .player-btn:active { transform: scale(0.97); }
-  .player-btn:hover { border-color: rgba(255,255,255,0.2); }
-
-  /* Per-player colors */
-  .player-btn[data-player="Dave D"]    { --pc: #4fc3f7; }
-  .player-btn[data-player="Daniel"]    { --pc: #ff7043; }
-  .player-btn[data-player="Dave C"]    { --pc: #ffd54f; }
-  .player-btn[data-player="Wes"]       { --pc: #ce93d8; }
-
-  .player-btn.selected {
-    background: rgba(var(--pc-rgb), 0.15);
-    border-color: var(--pc);
-    color: var(--pc);
-    box-shadow: 0 0 12px rgba(var(--pc-rgb), 0.2);
-  }
-  /* fallback selected state using border color trick */
-  .player-btn[data-player="Dave D"].selected  { background: rgba(79,195,247,0.15); border-color: #4fc3f7; color: #4fc3f7; }
-  .player-btn[data-player="Daniel"].selected  { background: rgba(255,112,67,0.15);  border-color: #ff7043; color: #ff7043; }
-  .player-btn[data-player="Dave C"].selected  { background: rgba(255,213,79,0.15);  border-color: #ffd54f; color: #ffd54f; }
-  .player-btn[data-player="Wes"].selected     { background: rgba(206,147,216,0.15); border-color: #ce93d8; color: #ce93d8; }
-
-  /* Action buttons */
-  .actions { display: flex; gap: 8px; margin-top: 10px; }
-  .actions button {
-    flex: 1; padding: 14px; border: none; border-radius: var(--radius-sm);
-    font-size: 0.95rem; font-family: 'Inter', sans-serif;
-    font-weight: 700; cursor: pointer; transition: all 0.2s;
-  }
-  .btn-done {
-    background: linear-gradient(135deg, var(--green), var(--green-dim));
-    color: #fff; box-shadow: 0 4px 16px rgba(0,200,83,0.3);
-  }
-  .btn-done:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,200,83,0.4); }
-  .btn-undo { background: var(--surface-hov); color: var(--text); border: 1px solid var(--border); }
-  .btn-undo:hover { background: rgba(255,255,255,0.12); }
-  .btn-finish {
-    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
-    color: #000; font-weight: 800;
-    box-shadow: 0 4px 16px rgba(255,215,0,0.25);
-  }
-  .btn-finish:hover { transform: translateY(-1px); }
-  .btn-danger { background: rgba(255,79,79,0.15); color: var(--red); border: 1px solid rgba(255,79,79,0.3); }
-  .btn-danger:hover { background: rgba(255,79,79,0.25); }
-
-  /* ============================================================
-     SUMMARY SCREEN
-  ============================================================ */
-  .summary { display: none; max-width: 500px; margin: 0 auto; padding-top: 16px; }
-
-  .summary-hero {
-    text-align: center; margin-bottom: 24px;
-  }
-  .summary-hero h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.4rem; letter-spacing: 3px;
-    background: linear-gradient(135deg, #fff 30%, var(--green));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  }
-
-  .summary-section {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px;
-    margin-bottom: 14px; backdrop-filter: blur(8px);
-  }
-  .summary-section h2 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.5rem; letter-spacing: 2px; color: var(--green);
-    margin-bottom: 14px;
-  }
-
-  .summary table { width: 100%; border-collapse: collapse; }
-  .summary th {
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px;
-    text-transform: uppercase; color: var(--text-muted);
-    padding: 8px 6px; text-align: center;
-    border-bottom: 1px solid var(--border);
-  }
-  .summary td {
-    padding: 10px 6px; text-align: center;
-    font-size: 0.9rem; font-weight: 500;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-  }
-  .summary tr:last-child td { border-bottom: none; }
-  .summary .total-row td { font-weight: 800; color: var(--gold); }
-  .summary td:first-child { text-align: left; font-weight: 700; }
-
-  .summary-actions { display: flex; gap: 10px; margin-top: 20px; }
-  .summary-actions button {
-    flex: 1; padding: 14px; border: none; border-radius: var(--radius-sm);
-    font-size: 0.95rem; font-family: 'Inter', sans-serif;
-    font-weight: 700; cursor: pointer; transition: all 0.2s;
-  }
-  .btn-new-round {
-    background: linear-gradient(135deg, var(--green), var(--green-dim));
-    color: #fff; box-shadow: 0 4px 16px rgba(0,200,83,0.3);
-  }
-  .btn-back-setup { background: var(--surface-hov); color: var(--text); border: 1px solid var(--border); }
-
-  /* ============================================================
-     UTILITIES
-  ============================================================ */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-  }
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 
-<!-- ==================== SETUP SCREEN ==================== -->
+<!-- ══ SETUP ══ -->
 <div class="setup" id="setup">
   <div class="logo-wrap">
     <span class="logo-icon">⛳</span>
     <div class="logo-title">Scramble Time</div>
     <div class="logo-sub">Side Game Tracker</div>
   </div>
-
-  <div class="setup-card">
-    <div class="field-group">
-      <label class="field-label" for="round-select">Round</label>
-      <select class="setup-select" id="round-select">
-        <option value="1">Round 1</option>
-        <option value="2">Round 2</option>
-      </select>
-    </div>
-    <div class="field-group">
-      <label class="field-label" for="start-hole">Starting Hole</label>
-      <select class="setup-select" id="start-hole"></select>
-    </div>
-    <button class="btn-start" onclick="startGame()">Start Tracking →</button>
-  </div>
-
-  <div id="prev-results"></div>
+  <div id="setup-content"></div>
 </div>
 
-<!-- ==================== GAME SCREEN ==================== -->
+<!-- ══ GAME ══ -->
 <div class="game" id="game">
-
-  <!-- Header -->
   <div class="hole-header">
-    <div class="round-badge">
-      <span class="round-badge-dot"></span>
-      <span id="round-label">Round 1</span>
-    </div>
+    <div class="round-badge"><span class="round-badge-dot"></span><span id="round-label">Round 1</span></div>
     <div class="hole-nav">
-      <button class="hole-nav-btn" onclick="goToHole(-1)" title="Previous hole" aria-label="Previous hole">&#9664;</button>
+      <button class="hole-nav-btn" onclick="goToHole(-1)" aria-label="Previous hole">&#9664;</button>
       <select class="hole-select" id="hole-select" onchange="jumpToHole(this.value)" aria-label="Select hole"></select>
-      <button class="hole-nav-btn" onclick="goToHole(1)" title="Next hole" aria-label="Next hole">&#9654;</button>
+      <button class="hole-nav-btn" onclick="goToHole(1)" aria-label="Next hole">&#9654;</button>
     </div>
     <div class="header-meta">
       <div class="hole-log" id="hole-log"></div>
       <div class="sync-status" id="sync-status">Connecting…</div>
     </div>
   </div>
-
-  <!-- Scoreboard -->
   <div class="scoreboard" id="scoreboard"></div>
-
-  <!-- Chart -->
   <div class="chart-section">
     <div class="chart-title">Cumulative Shots by Hole</div>
-    <div class="chart-wrap">
-      <canvas id="scoreChart"></canvas>
-    </div>
+    <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
   </div>
-
-  <!-- Shot Categories -->
   <div id="categories"></div>
-
-  <!-- Actions -->
   <div class="actions">
     <button class="btn-undo" onclick="undoLastShot()">↩ Undo</button>
     <button class="btn-done" onclick="finishHole()">Done →</button>
   </div>
-  <div class="actions" style="margin-top: 6px;">
+  <div class="actions" style="margin-top:6px;">
     <button class="btn-finish" onclick="finishRound()" style="flex:2">🏁 Finish Round</button>
     <button class="btn-danger" onclick="clearCurrentRound()" style="flex:1">Clear</button>
   </div>
-
 </div>
 
-<!-- ==================== SUMMARY SCREEN ==================== -->
+<!-- ══ SUMMARY ══ -->
 <div class="summary" id="summary"></div>
 
+<!-- ══ ARCHIVES ══ -->
+<div class="archives" id="archives">
+  <div class="archives-hero">
+    <h1>📁 Past Matches</h1>
+    <p>Your match history — tap any match to view details</p>
+  </div>
+  <div id="archives-list"></div>
+  <button class="btn-back-archives" onclick="showScreen('setup');renderSetup()">← Back to Setup</button>
+</div>
+
 <script>
-// ============================================================
-// SUPABASE CONFIG
-// ============================================================
-const SUPABASE_URL = 'https://iueaqmqxyqpyidqeewja.supabase.co';
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const SUPABASE_URL     = 'https://iueaqmqxyqpyidqeewja.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1ZWFxbXF4eXFweWlkcWVld2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTQxMjAsImV4cCI6MjA4ODY3MDEyMH0.8EPF94IZf-UjOo1ZrA5nnVbq1zDYVOSqkDKyzs5x8uM';
 
 let db = null;
-try {
-  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch(e) {
-  console.warn('Supabase init failed');
-}
-// ============================================================
+try { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+catch(e) { console.warn('Supabase init failed'); }
 
 const PLAYERS = ['Dave D', 'Daniel', 'Dave C', 'Wes'];
 const CATEGORIES = [
-  { key: 'drives',   label: 'Drives',           icon: '🏌️', multi: false },
-  { key: 'approach', label: 'Approach >100 yds', icon: '🎯', multi: true  },
-  { key: 'chips',    label: 'Chips <100 yds',    icon: '🪃', multi: true  },
-  { key: 'putts',    label: 'Putts',             icon: '⛳', multi: true  }
+  { key:'drives',   label:'Drives',           icon:'🏌️', multi:false },
+  { key:'approach', label:'Approach >100 yds', icon:'🎯', multi:true  },
+  { key:'chips',    label:'Chips <100 yds',    icon:'🪃', multi:true  },
+  { key:'putts',    label:'Putts',             icon:'⛳', multi:true  }
 ];
+const PLAYER_COLORS = { 'Dave D':'#4fc3f7', 'Daniel':'#ff7043', 'Dave C':'#ffd54f', 'Wes':'#ce93d8' };
 
-const PLAYER_COLORS = {
-  'Dave D':  '#4fc3f7',
-  'Daniel':  '#ff7043',
-  'Dave C':  '#ffd54f',
-  'Wes':     '#ce93d8'
-};
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let currentSessionId  = localStorage.getItem('scramble_session_id') || null;
+let currentRound      = 1;
+let currentHole       = 1;
+let holeData          = {};
+let roundData         = {};
+let realtimeChannel   = null;
+let roundStartHoles   = JSON.parse(localStorage.getItem('roundStartHoles') || '{}');
+let scoreChart        = null;
 
-let currentRound = 1;
-let currentHole  = 1;
-let holeData     = {};
-let roundData    = {};
-let realtimeChannel = null;
-let roundStartHoles = JSON.parse(localStorage.getItem('roundStartHoles') || '{}');
-let scoreChart   = null;
-
-// Build start-hole dropdown
-const startHoleSelect = document.getElementById('start-hole');
-for (let i = 1; i <= 18; i++) {
-  const opt = document.createElement('option');
-  opt.value = i; opt.textContent = 'Hole ' + i;
-  startHoleSelect.appendChild(opt);
+// ══════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ══════════════════════════════════════════════
+function showScreen(name) {
+  ['setup','game','summary','archives'].forEach(s => {
+    document.getElementById(s).style.display = s === name ? 'block' : 'none';
+  });
+  // game uses flex-like block
+  if (name === 'game') document.getElementById('game').style.display = 'block';
 }
 
-// ─── Supabase ────────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// SETUP RENDERING
+// ══════════════════════════════════════════════
+function renderSetup() {
+  showScreen('setup');
+  const el = document.getElementById('setup-content');
 
+  if (currentSessionId && roundData && Object.keys(roundData).length > 0) {
+    // Active session exists
+    const r1 = getCompletedCount(1), r2 = getCompletedCount(2);
+    const sessionDate = localStorage.getItem('scramble_session_date') || 'Today';
+    const sessionLabel = localStorage.getItem('scramble_session_label') || 'Match in progress';
+    el.innerHTML = `
+      <div class="active-session-card">
+        <div class="active-session-label">⚡ Active Match</div>
+        <div class="active-session-name">${sessionLabel}</div>
+        <div class="active-session-meta">${sessionDate} &nbsp;·&nbsp; R1: ${r1}/18 &nbsp;·&nbsp; R2: ${r2}/18</div>
+      </div>
+      <button class="btn-start" onclick="resumeMatch()" style="margin-bottom:10px">▶ Continue Match</button>
+      <div class="setup-row">
+        <button class="btn-secondary" onclick="archiveAndNew()">Archive &amp; New Match</button>
+        <button class="btn-archives" onclick="openArchives()">📁 History</button>
+      </div>`;
+  } else {
+    // No active session — show new match form
+    let holesHtml = '';
+    for (let i=1;i<=18;i++) holesHtml += `<option value="${i}">Hole ${i}</option>`;
+    el.innerHTML = `
+      <div class="setup-card">
+        <div class="field-group">
+          <label class="field-label" for="match-label">Match Name (optional)</label>
+          <input class="setup-input" id="match-label" type="text" placeholder="e.g. Augusta - April 2026" maxlength="50">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="round-select">Round</label>
+          <select class="setup-select" id="round-select">
+            <option value="1">Round 1</option>
+            <option value="2">Round 2</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="start-hole">Starting Hole</label>
+          <select class="setup-select" id="start-hole">${holesHtml}</select>
+        </div>
+        <button class="btn-start" onclick="startNewMatch()">Start Tracking →</button>
+      </div>
+      <button class="btn-archives" style="width:100%;padding:12px;border-radius:var(--radius-sm);
+        font-size:.9rem;font-family:Inter,sans-serif;font-weight:600;cursor:pointer;
+        border:1px solid rgba(255,215,0,.25);background:rgba(255,215,0,.08);color:var(--gold);
+        transition:all .2s" onclick="openArchives()">📁 View Past Matches</button>`;
+  }
+}
+
+// ══════════════════════════════════════════════
+// SESSION MANAGEMENT
+// ══════════════════════════════════════════════
+async function startNewMatch() {
+  const label     = (document.getElementById('match-label')?.value || '').trim();
+  const round     = parseInt(document.getElementById('round-select').value);
+  const startHole = parseInt(document.getElementById('start-hole').value);
+
+  if (!db) { alert('No database connection. Check Supabase config.'); return; }
+
+  // Create session in DB
+  const { data, error } = await db.from('sessions').insert({
+    label: label || 'Scramble Match',
+    played_at: new Date().toISOString().split('T')[0]
+  }).select().single();
+
+  if (error) { alert('Could not create match. Run the archive SQL migration first!'); return; }
+
+  currentSessionId = data.id;
+  localStorage.setItem('scramble_session_id', currentSessionId);
+  localStorage.setItem('scramble_session_label', label || 'Scramble Match');
+  localStorage.setItem('scramble_session_date', new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}));
+  roundData = {};
+  roundStartHoles = {};
+  localStorage.setItem('roundStartHoles', JSON.stringify(roundStartHoles));
+
+  subscribeToRealtime();
+
+  currentRound = round;
+  if (!roundStartHoles[currentRound]) {
+    roundStartHoles[currentRound] = startHole;
+    localStorage.setItem('roundStartHoles', JSON.stringify(roundStartHoles));
+  }
+  currentHole = startHole;
+  loadHoleAndShow();
+}
+
+function resumeMatch() {
+  const inProgress1 = findInProgressHole(1);
+  const inProgress2 = findInProgressHole(2);
+  const ip = inProgress1 !== null ? inProgress1 : inProgress2;
+  if (ip !== null) {
+    currentRound = inProgress1 !== null ? 1 : 2;
+    currentHole  = ip;
+  } else {
+    currentRound = 1; currentHole = parseInt(roundStartHoles[1]) || 1;
+  }
+  loadHoleAndShow();
+}
+
+async function archiveAndNew() {
+  if (!confirm('Archive the current match and start a new one?')) return;
+  currentSessionId = null;
+  localStorage.removeItem('scramble_session_id');
+  localStorage.removeItem('scramble_session_label');
+  localStorage.removeItem('scramble_session_date');
+  localStorage.setItem('roundStartHoles','{}');
+  roundData = {}; roundStartHoles = {};
+  if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+  if (realtimeChannel && db) db.removeChannel(realtimeChannel);
+  renderSetup();
+}
+
+// ══════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════
 async function loadFromSupabase() {
-  if (!db) return;
-  const { data, error } = await db.from('hole_scores').select('*');
-  if (error) { setSyncStatus('error', 'Load failed'); return; }
+  if (!db || !currentSessionId) return;
+  const { data, error } = await db.from('hole_scores').select('*').eq('session_id', currentSessionId);
+  if (error) { setSyncStatus('error','Load failed'); return; }
   roundData = {};
   data.forEach(row => {
     if (!roundData[row.round]) roundData[row.round] = {};
     roundData[row.round][row.hole] = {
-      drives: row.drives || [], approach: row.approach || [],
-      chips:  row.chips  || [], putts:    row.putts   || [],
-      done: row.done || false
+      drives:row.drives||[], approach:row.approach||[], chips:row.chips||[], putts:row.putts||[], done:row.done||false
     };
   });
 }
 
 async function saveCurrentHole() {
-  if (!db) return;
-  setSyncStatus('ok', 'Saving…');
+  if (!db || !currentSessionId) return;
+  setSyncStatus('ok','Saving…');
   const { error } = await db.from('hole_scores').upsert({
-    round: currentRound, hole: currentHole,
-    drives:   holeData.drives   || [],
-    approach: holeData.approach || [],
-    chips:    holeData.chips    || [],
-    putts:    holeData.putts    || [],
-    done: holeData.done || false
-  }, { onConflict: 'round,hole' });
-  if (error) setSyncStatus('error', 'Save failed');
-  else       setSyncStatus('ok', 'Synced ✓');
+    session_id: currentSessionId, round: currentRound, hole: currentHole,
+    drives:holeData.drives||[], approach:holeData.approach||[],
+    chips:holeData.chips||[], putts:holeData.putts||[], done:holeData.done||false
+  }, { onConflict:'session_id,round,hole' });
+  if (error) setSyncStatus('error','Save failed');
+  else       setSyncStatus('ok','Synced ✓');
 }
 
-async function deleteHoleFromSupabase(round, hole) {
-  if (!db) return;
-  await db.from('hole_scores').delete().eq('round', round).eq('hole', hole);
-}
-
-async function clearAllFromSupabase() {
-  if (!db) return;
-  await db.from('hole_scores').delete().gte('round', 1);
+async function deleteHoleFromDB(round, hole) {
+  if (!db || !currentSessionId) return;
+  await db.from('hole_scores').delete().eq('session_id',currentSessionId).eq('round',round).eq('hole',hole);
 }
 
 function subscribeToRealtime() {
   if (!db) return;
   if (realtimeChannel) db.removeChannel(realtimeChannel);
-  realtimeChannel = db
-    .channel('hole_scores_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'hole_scores' }, handleRealtimeChange)
-    .subscribe(status => { if (status === 'SUBSCRIBED') setSyncStatus('ok', 'Live ●'); });
+  realtimeChannel = db.channel('hole_scores_ch_'+currentSessionId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'hole_scores'}, handleRealtimeChange)
+    .subscribe(s => { if(s==='SUBSCRIBED') setSyncStatus('ok','Live ●'); });
 }
 
 function handleRealtimeChange(payload) {
-  const { eventType, new: newRow, old: oldRow } = payload;
-  if (eventType === 'INSERT' || eventType === 'UPDATE') {
-    if (!roundData[newRow.round]) roundData[newRow.round] = {};
-    roundData[newRow.round][newRow.hole] = {
-      drives: newRow.drives || [], approach: newRow.approach || [],
-      chips:  newRow.chips  || [], putts:    newRow.putts   || [],
-      done: newRow.done || false
-    };
-    if (document.getElementById('game').style.display !== 'none' &&
-        newRow.round === currentRound && newRow.hole === currentHole) {
-      holeData = { ...roundData[currentRound][currentHole] };
-      renderHole();
+  const { eventType, new:nr, old:or } = payload;
+  if (!nr || nr.session_id !== currentSessionId) return;
+  if (eventType==='INSERT'||eventType==='UPDATE') {
+    if (!roundData[nr.round]) roundData[nr.round]={};
+    roundData[nr.round][nr.hole]={drives:nr.drives||[],approach:nr.approach||[],chips:nr.chips||[],putts:nr.putts||[],done:nr.done||false};
+    if (document.getElementById('game').style.display!=='none' && nr.round===currentRound && nr.hole===currentHole) {
+      holeData={...roundData[currentRound][currentHole]};renderHole();
     }
-  } else if (eventType === 'DELETE') {
-    if (oldRow && roundData[oldRow.round]) delete roundData[oldRow.round][oldRow.hole];
+  } else if (eventType==='DELETE' && or && roundData[or.round]) {
+    delete roundData[or.round][or.hole];
   }
-  if (document.getElementById('game').style.display !== 'none')    updateHoleCount();
-  if (document.getElementById('summary').style.display !== 'none') viewSummary();
+  if (document.getElementById('game').style.display!=='none') updateHoleCount();
 }
 
-function setSyncStatus(type, msg) {
-  const el = document.getElementById('sync-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'sync-status' + (type === 'error' ? ' error' : '');
+function setSyncStatus(type,msg){const el=document.getElementById('sync-status');if(!el)return;el.textContent=msg;el.className='sync-status'+(type==='error'?' error':'');}
+
+// ══════════════════════════════════════════════
+// GAME LOGIC
+// ══════════════════════════════════════════════
+function getCompletedCount(round){if(!roundData[round])return 0;return Object.values(roundData[round]).filter(h=>h.done).length;}
+function updateHoleCount(){const el=document.getElementById('hole-log');if(el)el.textContent=getCompletedCount(currentRound)+'/18 holes done';}
+function findInProgressHole(round){if(!roundData[round])return null;for(const h of Object.keys(roundData[round])){if(!roundData[round][h].done)return parseInt(h);}return null;}
+
+function loadHoleAndShow(){
+  holeData=roundData[currentRound]&&roundData[currentRound][currentHole]
+    ?{...roundData[currentRound][currentHole]}
+    :{drives:[],approach:[],chips:[],putts:[],done:false};
+  showScreen('game');renderHole();
 }
 
-// ─── UI Logic ─────────────────────────────────────────────────
+function goToHole(dir){let n=currentHole+dir;if(n<1)n=18;if(n>18)n=1;currentHole=n;loadHoleAndShow();}
+function jumpToHole(h){currentHole=parseInt(h);loadHoleAndShow();}
 
-function getCompletedCount(round) {
-  if (!roundData[round]) return 0;
-  return Object.values(roundData[round]).filter(h => h.done).length;
-}
-
-function updateHoleCount() {
-  const count = getCompletedCount(currentRound);
-  const el = document.getElementById('hole-log');
-  if (el) el.textContent = count + '/18 holes done';
-}
-
-function showPreviousResults() {
-  const el = document.getElementById('prev-results');
-  const hasData = Object.keys(roundData).some(r => Object.keys(roundData[r]).length > 0);
-  if (!hasData) { el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <div class="prev-btn-row">
-      <button class="btn-view-summary" onclick="viewSummary()">📊 View Summary</button>
-      <button class="btn-clear-all" onclick="clearData()">Clear All Data</button>
-    </div>`;
-}
-
-async function clearData() {
-  if (confirm('Clear all saved data?')) {
-    await clearAllFromSupabase();
-    roundData = {};
-    showPreviousResults();
-  }
-}
-
-async function clearCurrentRound() {
-  if (!confirm('Clear ALL data for Round ' + currentRound + '? This cannot be undone.')) return;
-  if (!confirm('Are you REALLY sure? This will delete every hole in Round ' + currentRound + '.')) return;
-  if (roundData[currentRound]) {
-    for (const hole of Object.keys(roundData[currentRound])) {
-      await deleteHoleFromSupabase(currentRound, parseInt(hole));
-    }
-  }
-  delete roundData[currentRound];
-  delete roundStartHoles[currentRound];
-  localStorage.setItem('roundStartHoles', JSON.stringify(roundStartHoles));
-  if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
-  document.getElementById('game').style.display = 'none';
-  document.getElementById('setup').style.display = 'block';
-  showPreviousResults();
-}
-
-function findInProgressHole(round) {
-  if (!roundData[round]) return null;
-  for (const hole of Object.keys(roundData[round])) {
-    if (!roundData[round][hole].done) return parseInt(hole);
-  }
-  return null;
-}
-
-function startGame() {
-  currentRound = parseInt(document.getElementById('round-select').value);
-  const startHole = parseInt(document.getElementById('start-hole').value);
-  if (!roundData[currentRound]) roundData[currentRound] = {};
-  if (!roundStartHoles[currentRound]) {
-    roundStartHoles[currentRound] = startHole;
-    localStorage.setItem('roundStartHoles', JSON.stringify(roundStartHoles));
-  }
-  const inProgress = findInProgressHole(currentRound);
-  if (inProgress !== null) {
-    currentHole = inProgress;
-  } else {
-    currentHole = startHole;
-    const existingHoles = Object.keys(roundData[currentRound]).map(Number);
-    if (existingHoles.length > 0) {
-      for (let i = 0; i < 18; i++) {
-        const h = ((startHole - 1 + i) % 18) + 1;
-        if (!existingHoles.includes(h)) { currentHole = h; break; }
-      }
-    }
-  }
-  loadHoleAndShow();
-}
-
-function loadHoleAndShow() {
-  if (roundData[currentRound] && roundData[currentRound][currentHole]) {
-    holeData = { ...roundData[currentRound][currentHole] };
-  } else {
-    holeData = { drives: [], approach: [], chips: [], putts: [], done: false };
-  }
-  document.getElementById('setup').style.display = 'none';
-  document.getElementById('summary').style.display = 'none';
-  document.getElementById('game').style.display = 'block';
-  renderHole();
-}
-
-function goToHole(direction) {
-  let next = currentHole + direction;
-  if (next < 1) next = 18;
-  if (next > 18) next = 1;
-  currentHole = next;
-  loadHoleAndShow();
-}
-
-function jumpToHole(hole) {
-  currentHole = parseInt(hole);
-  loadHoleAndShow();
-}
-
-function renderHole() {
-  document.getElementById('round-label').textContent = 'Round ' + currentRound;
-  updateHoleCount();
-  renderChart();
-
-  // Hole selector
-  const sel = document.getElementById('hole-select');
-  sel.innerHTML = '';
-  for (let i = 1; i <= 18; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    const rd = roundData[currentRound];
-    const done    = rd && rd[i] && rd[i].done;
-    const hasData = rd && rd[i];
-    opt.textContent = 'Hole ' + i + (done ? ' ✓' : (hasData ? ' •' : ''));
-    if (i === currentHole) opt.selected = true;
-    sel.appendChild(opt);
-  }
-
-  // Categories
-  const container = document.getElementById('categories');
-  container.innerHTML = '';
-  CATEGORIES.forEach(cat => {
-    const div = document.createElement('div');
-    div.className = 'category';
-    const shots = holeData[cat.key] || [];
-    let html = `<div class="cat-header">
-      <div class="cat-icon">${cat.icon}</div>
-      <div class="cat-name">${cat.label}</div>
-    </div>`;
-
-    if (cat.multi) {
-      if (shots.length > 0) {
-        html += '<div class="shot-log">';
-        shots.forEach((player, idx) => {
-          html += `<div class="shot-entry">
-            <span class="shot-num">${idx + 1}.</span>
-            <span style="color:${PLAYER_COLORS[player] || '#fff'}">${player}</span>
-            <button class="remove-shot" onclick="removeShot('${cat.key}', ${idx})" aria-label="Remove shot">&times;</button>
-          </div>`;
-        });
-        html += '</div>';
-      }
-      html += `<div class="shot-label">Shot ${shots.length + 1}:</div>`;
-      html += `<div class="players" id="cat-${cat.key}"></div>`;
+function renderHole(){
+  document.getElementById('round-label').textContent='Round '+currentRound;
+  updateHoleCount();renderChart();
+  const sel=document.getElementById('hole-select');sel.innerHTML='';
+  for(let i=1;i<=18;i++){const o=document.createElement('option');o.value=i;
+    const rd=roundData[currentRound];
+    o.textContent='Hole '+i+(rd&&rd[i]&&rd[i].done?' ✓':rd&&rd[i]?' •':'');
+    if(i===currentHole)o.selected=true;sel.appendChild(o);}
+  const c=document.getElementById('categories');c.innerHTML='';
+  CATEGORIES.forEach(cat=>{
+    const div=document.createElement('div');div.className='category';
+    const shots=holeData[cat.key]||[];
+    let html=`<div class="cat-header"><div class="cat-icon">${cat.icon}</div><div class="cat-name">${cat.label}</div></div>`;
+    if(cat.multi){
+      if(shots.length>0){html+='<div class="shot-log">';
+        shots.forEach((p,i)=>{html+=`<div class="shot-entry"><span class="shot-num">${i+1}.</span>
+          <span style="color:${PLAYER_COLORS[p]||'#fff'}">${p}</span>
+          <button class="remove-shot" onclick="removeShot('${cat.key}',${i})">&times;</button></div>`;});
+        html+='</div>';}
+      html+=`<div class="shot-label">Shot ${shots.length+1}:</div><div class="players" id="cat-${cat.key}"></div>`;
     } else {
-      html += `<div class="players" id="cat-${cat.key}"></div>`;
+      html+=`<div class="players" id="cat-${cat.key}"></div>`;
     }
-
-    div.innerHTML = html;
-    container.appendChild(div);
-
-    const playersDiv = div.querySelector(`#cat-${cat.key}`);
-    PLAYERS.forEach(player => {
-      const btn = document.createElement('button');
-      btn.className = 'player-btn';
-      btn.textContent = player;
-      btn.setAttribute('data-player', player);
-      if (cat.multi) {
-        btn.onclick = () => addShot(cat.key, player);
-      } else {
-        if (shots.length > 0 && shots[0] === player) btn.classList.add('selected');
-        btn.onclick = () => selectDrive(player, btn);
-      }
-      playersDiv.appendChild(btn);
-    });
+    div.innerHTML=html;c.appendChild(div);
+    const pd=div.querySelector(`#cat-${cat.key}`);
+    PLAYERS.forEach(player=>{
+      const btn=document.createElement('button');btn.className='player-btn';btn.textContent=player;btn.setAttribute('data-player',player);
+      if(cat.multi){btn.onclick=()=>addShot(cat.key,player);}
+      else{if(shots.length>0&&shots[0]===player)btn.classList.add('selected');btn.onclick=()=>selectDrive(player);}
+      pd.appendChild(btn);});
   });
 }
 
-async function selectDrive(player, btn) {
-  const current = holeData.drives;
-  holeData.drives = (current.length > 0 && current[0] === player) ? [] : [player];
-  if (!roundData[currentRound]) roundData[currentRound] = {};
-  roundData[currentRound][currentHole] = { ...holeData };
-  await saveCurrentHole();
-  renderHole();
-}
+async function selectDrive(player){holeData.drives=holeData.drives.length>0&&holeData.drives[0]===player?[]:[player];synAndRender();}
+async function addShot(cat,player){holeData[cat].push(player);synAndRender();}
+async function removeShot(cat,idx){holeData[cat].splice(idx,1);synAndRender();}
+async function synAndRender(){if(!roundData[currentRound])roundData[currentRound]={};roundData[currentRound][currentHole]={...holeData};await saveCurrentHole();renderHole();}
 
-async function addShot(category, player) {
-  holeData[category].push(player);
-  if (!roundData[currentRound]) roundData[currentRound] = {};
-  roundData[currentRound][currentHole] = { ...holeData };
-  await saveCurrentHole();
-  renderHole();
-}
-
-async function removeShot(category, index) {
-  holeData[category].splice(index, 1);
-  if (!roundData[currentRound]) roundData[currentRound] = {};
-  roundData[currentRound][currentHole] = { ...holeData };
-  await saveCurrentHole();
-  renderHole();
-}
-
-async function undoLastShot() {
-  const catOrder = ['putts', 'chips', 'approach', 'drives'];
-  for (const key of catOrder) {
-    if (holeData[key] && holeData[key].length > 0) {
-      holeData[key].pop();
-      if (!roundData[currentRound]) roundData[currentRound] = {};
-      roundData[currentRound][currentHole] = { ...holeData };
-      await saveCurrentHole();
-      renderHole();
-      return;
-    }
+async function undoLastShot(){
+  for(const key of['putts','chips','approach','drives']){
+    if(holeData[key]&&holeData[key].length>0){holeData[key].pop();await synAndRender();return;}
   }
 }
 
-async function finishHole() {
-  holeData.done = true;
-  if (!roundData[currentRound]) roundData[currentRound] = {};
-  roundData[currentRound][currentHole] = { ...holeData };
-  await saveCurrentHole();
-  if (getCompletedCount(currentRound) >= 18) { finishRound(); return; }
-  const rd = roundData[currentRound];
-  let nextHole = currentHole >= 18 ? 1 : currentHole + 1;
-  for (let i = 0; i < 18; i++) {
-    if (!rd[nextHole] || !rd[nextHole].done) break;
-    nextHole = nextHole >= 18 ? 1 : nextHole + 1;
-  }
-  currentHole = nextHole;
-  loadHoleAndShow();
+async function finishHole(){
+  holeData.done=true;if(!roundData[currentRound])roundData[currentRound]={};
+  roundData[currentRound][currentHole]={...holeData};await saveCurrentHole();
+  if(getCompletedCount(currentRound)>=18){finishRound();return;}
+  const rd=roundData[currentRound];let next=currentHole>=18?1:currentHole+1;
+  for(let i=0;i<18;i++){if(!rd[next]||!rd[next].done)break;next=next>=18?1:next+1;}
+  currentHole=next;loadHoleAndShow();
 }
 
-function finishRound() {
-  if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
-  document.getElementById('game').style.display = 'none';
-  viewSummary();
+async function clearCurrentRound(){
+  if(!confirm('Clear ALL data for Round '+currentRound+'?'))return;
+  if(!confirm('Really? Cannot be undone.'))return;
+  if(roundData[currentRound]){for(const h of Object.keys(roundData[currentRound]))await deleteHoleFromDB(currentRound,parseInt(h));}
+  delete roundData[currentRound];delete roundStartHoles[currentRound];
+  localStorage.setItem('roundStartHoles',JSON.stringify(roundStartHoles));
+  if(scoreChart){scoreChart.destroy();scoreChart=null;}
+  renderSetup();
 }
 
-function viewSummary() {
-  document.getElementById('setup').style.display  = 'none';
-  document.getElementById('game').style.display   = 'none';
-  const el = document.getElementById('summary');
-  el.style.display = 'block';
+function finishRound(){if(scoreChart){scoreChart.destroy();scoreChart=null;}viewSummary(roundData);}
 
+// ══════════════════════════════════════════════
+// SUMMARY
+// ══════════════════════════════════════════════
+function viewSummary(data, sessionMeta) {
+  showScreen('summary');
+  const label = sessionMeta?.label || localStorage.getItem('scramble_session_label') || 'Match Summary';
   const tallies = {};
-  for (const round of [1, 2]) {
-    if (!roundData[round] || Object.keys(roundData[round]).length === 0) continue;
-    tallies[round] = {};
-    PLAYERS.forEach(p => {
-      tallies[round][p] = {};
-      CATEGORIES.forEach(c => tallies[round][p][c.key] = 0);
-      tallies[round][p].total = 0;
-    });
-    for (const hole of Object.keys(roundData[round])) {
-      const hd = roundData[round][hole];
-      CATEGORIES.forEach(cat => {
-        if (hd[cat.key]) hd[cat.key].forEach(player => {
-          if (tallies[round][player]) {
-            tallies[round][player][cat.key]++;
-            tallies[round][player].total++;
-          }
-        });
-      });
+  for(const round of[1,2]){
+    if(!data[round]||Object.keys(data[round]).length===0)continue;
+    tallies[round]={};
+    PLAYERS.forEach(p=>{tallies[round][p]={};CATEGORIES.forEach(c=>tallies[round][p][c.key]=0);tallies[round][p].total=0;});
+    for(const hole of Object.keys(data[round])){
+      const hd=data[round][hole];
+      CATEGORIES.forEach(cat=>{if(hd[cat.key])hd[cat.key].forEach(pl=>{if(tallies[round][pl]){tallies[round][pl][cat.key]++;tallies[round][pl].total++;}});});
     }
   }
-
-  let html = `<div class="summary-hero"><h1>Scramble Time</h1><p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Round Summary</p></div>`;
-  const summaryCharts = [];
-
-  for (const round of [1, 2]) {
-    if (!tallies[round]) continue;
-    const doneCount  = getCompletedCount(round);
-    const totalCount = Object.keys(roundData[round]).length;
-    const chartId = 'summary-chart-r' + round;
-    html += `<div class="summary-section">
-      <h2>Round ${round} <span style="font-size:0.9rem;color:var(--text-muted);font-family:Inter,sans-serif;font-weight:400">${doneCount} done · ${totalCount} tracked</span></h2>
-      <div class="chart-section" style="margin-bottom:14px"><div class="chart-wrap"><canvas id="${chartId}"></canvas></div></div>
-      ${buildTable(tallies[round])}
-    </div>`;
-    summaryCharts.push({ round, chartId });
+  const el=document.getElementById('summary');
+  let html=`<div class="summary-hero"><h1>Scramble Time</h1><p style="color:var(--text-muted);font-size:.78rem;margin-top:4px">${label}</p></div>`;
+  const charts=[];
+  for(const round of[1,2]){
+    if(!tallies[round])continue;
+    const cid='sum-chart-r'+round;
+    html+=`<div class="summary-section"><h2>Round ${round} <span style="font-size:.85rem;color:var(--text-muted);font-family:Inter,sans-serif;font-weight:400">${getCompletedCount(round)} holes done</span></h2>
+      <div class="chart-section" style="margin-bottom:12px"><div class="chart-wrap"><canvas id="${cid}"></canvas></div></div>
+      ${buildTable(tallies[round])}</div>`;
+    charts.push({round,cid,data});
   }
-
-  if (tallies[1] && tallies[2]) {
-    const combined = {};
-    PLAYERS.forEach(p => {
-      combined[p] = {};
-      CATEGORIES.forEach(c => { combined[p][c.key] = (tallies[1][p][c.key] || 0) + (tallies[2][p][c.key] || 0); });
-      combined[p].total = (tallies[1][p].total || 0) + (tallies[2][p].total || 0);
-    });
-    html += `<div class="summary-section"><h2>Combined Total</h2>${buildTable(combined)}</div>`;
+  if(tallies[1]&&tallies[2]){
+    const combined={};
+    PLAYERS.forEach(p=>{combined[p]={};CATEGORIES.forEach(c=>{combined[p][c.key]=(tallies[1][p][c.key]||0)+(tallies[2][p][c.key]||0);});combined[p].total=(tallies[1][p].total||0)+(tallies[2][p].total||0);});
+    html+=`<div class="summary-section"><h2>Combined</h2>${buildTable(combined)}</div>`;
   }
-
-  html += `<div class="summary-actions">
-    <button class="btn-back-setup" onclick="backToSetup()">← Back</button>
-    <button class="btn-new-round" onclick="backToSetup()">New Round</button>
+  const isLive = data === roundData;
+  html+=`<div class="summary-actions">
+    <button class="btn-back-setup" onclick="${isLive?'renderSetup()':'openArchives()'}">← Back</button>
+    ${isLive?'<button class="btn-archive-done" onclick="archiveAndNew()">🏁 Archive Match</button>':''}
   </div>`;
-
-  el.innerHTML = html;
-  summaryCharts.forEach(({ round, chartId }) => renderSummaryChart(round, chartId));
+  el.innerHTML=html;
+  charts.forEach(({round,cid,data})=>renderSummaryChart(round,cid,data));
 }
 
-function buildTable(tally) {
-  // Sort players by total descending
-  const sorted = PLAYERS.slice().sort((a, b) => tally[b].total - tally[a].total);
-  let html = `<table><tr><th>Player</th>`;
-  CATEGORIES.forEach(c => html += `<th>${c.icon}</th>`);
-  html += `<th>Total</th></tr>`;
-  sorted.forEach((p, i) => {
-    const isTop = i === 0;
-    html += `<tr${isTop ? ' class="total-row"' : ''}>
-      <td style="color:${PLAYER_COLORS[p]};font-weight:700">${p}</td>`;
-    CATEGORIES.forEach(c => html += `<td>${tally[p][c.key]}</td>`);
-    html += `<td><strong>${tally[p].total}</strong></td></tr>`;
+function buildTable(tally){
+  const sorted=PLAYERS.slice().sort((a,b)=>tally[b].total-tally[a].total);
+  let html='<table><tr><th>Player</th>';
+  CATEGORIES.forEach(c=>html+=`<th>${c.icon}</th>`);
+  html+='<th>Total</th></tr>';
+  sorted.forEach((p,i)=>{
+    html+=`<tr${i===0?' class="winner-row"':''}><td style="color:${PLAYER_COLORS[p]}">${p}</td>`;
+    CATEGORIES.forEach(c=>html+=`<td>${tally[p][c.key]}</td>`);
+    html+=`<td><strong>${tally[p].total}</strong></td></tr>`;
   });
-  html += '</table>';
-  return html;
+  return html+'</table>';
 }
 
-function backToSetup() {
-  document.getElementById('summary').style.display = 'none';
-  document.getElementById('setup').style.display = 'block';
-  showPreviousResults();
-}
+// ══════════════════════════════════════════════
+// ARCHIVES
+// ══════════════════════════════════════════════
+async function openArchives() {
+  showScreen('archives');
+  const listEl = document.getElementById('archives-list');
+  listEl.innerHTML = '<div class="loading-msg">Loading matches…</div>';
+  if (!db) { listEl.innerHTML='<div class="empty-archives"><span class="empty-icon">📡</span>No database connection.</div>'; return; }
 
-// ─── Charts ───────────────────────────────────────────────────
-
-function getHoleOrder(round) {
-  const start = parseInt(roundStartHoles[round]) || 1;
-  const ordered = [];
-  for (let i = 0; i < 18; i++) ordered.push(((start - 1 + i) % 18) + 1);
-  return ordered;
-}
-
-function buildChartData(round) {
-  if (!roundData[round] || Object.keys(roundData[round]).length === 0) return null;
-  const holes = getHoleOrder(round);
-  const datasets = PLAYERS.map(player => {
-    let cumulative = 0;
-    const data = holes.map(hole => {
-      const hd = roundData[round] && roundData[round][hole];
-      if (!hd) return null;
-      let count = 0;
-      CATEGORIES.forEach(cat => { if (hd[cat.key]) count += hd[cat.key].filter(p => p === player).length; });
-      cumulative += count;
-      return cumulative;
-    });
-    return {
-      label: player, data,
-      borderColor: PLAYER_COLORS[player],
-      backgroundColor: PLAYER_COLORS[player],
-      borderWidth: 2.5, pointRadius: 3.5,
-      pointBackgroundColor: PLAYER_COLORS[player],
-      tension: 0.3, fill: false, spanGaps: true
-    };
-  });
-  return { labels: holes, datasets };
-}
-
-const chartOptions = {
-  responsive: true, maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'top',
-      labels: { color: 'rgba(255,255,255,0.7)', font: { size: 11, family: 'Inter' }, boxWidth: 10, padding: 10 }
-    }
-  },
-  scales: {
-    x: {
-      ticks: { color: 'rgba(255,255,255,0.45)', font: { size: 9 } },
-      grid:  { color: 'rgba(255,255,255,0.06)' }
-    },
-    y: {
-      beginAtZero: true,
-      ticks: { color: 'rgba(255,255,255,0.45)', font: { size: 9 }, stepSize: 1 },
-      grid:  { color: 'rgba(255,255,255,0.06)' }
-    }
+  const { data: sessions, error } = await db.from('sessions').select('*').order('created_at',{ascending:false});
+  if (error||!sessions||sessions.length===0) {
+    listEl.innerHTML='<div class="empty-archives"><span class="empty-icon">⛳</span><strong>No matches yet</strong><br><br>Play a round and archive it to see your history here.</div>';
+    return;
   }
-};
+  const ids = sessions.map(s=>s.id);
+  const { data: scores } = await db.from('hole_scores').select('*').in('session_id', ids);
+  listEl.innerHTML = sessions.map(s => renderArchiveCard(s, (scores||[]).filter(r=>r.session_id===s.id))).join('');
+}
 
-function renderScoreboard(round) {
-  const el = document.getElementById('scoreboard');
-  if (!el) return;
-  const totals = {};
-  PLAYERS.forEach(p => totals[p] = 0);
-  if (roundData[round]) {
-    for (const hole of Object.keys(roundData[round])) {
-      const hd = roundData[round][hole];
-      CATEGORIES.forEach(cat => { if (hd[cat.key]) hd[cat.key].forEach(p => { if (totals[p] !== undefined) totals[p]++; }); });
-    }
-  }
-  const sorted = PLAYERS.slice().sort((a, b) => totals[b] - totals[a]);
-  const ranks = {};
-  sorted.forEach((p, i) => {
-    if (i > 0 && totals[p] === totals[sorted[i-1]]) ranks[p] = ranks[sorted[i-1]];
-    else ranks[p] = i + 1;
-  });
-  const rankLabels = { 1: '1ST 🥇', 2: '2ND', 3: '3RD', 4: '4TH' };
-  el.innerHTML = PLAYERS.map(p => `
-    <div class="sb-player ${ranks[p] === 1 ? 'leader' : ''}">
-      <div class="sb-name" style="color:${PLAYER_COLORS[p]}">${p}</div>
-      <div class="sb-score" style="color:${PLAYER_COLORS[p]}">${totals[p]}</div>
-      <div class="sb-rank">${rankLabels[ranks[p]] || ''}</div>
+function renderArchiveCard(session, scores) {
+  const date = new Date(session.played_at+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const r1done = scores.filter(s=>s.round===1&&s.done).length;
+  const r2done = scores.filter(s=>s.round===2&&s.done).length;
+  const totals = {}; PLAYERS.forEach(p=>totals[p]=0);
+  scores.forEach(s=>CATEGORIES.forEach(c=>{if(s[c.key])s[c.key].forEach(p=>{if(totals[p]!==undefined)totals[p]++;})}));
+  const sorted = PLAYERS.slice().sort((a,b)=>totals[b]-totals[a]);
+  const leader = sorted[0]; const hasData = totals[leader] > 0;
+  const playersHtml = PLAYERS.map(p=>`
+    <div class="archive-player">
+      <div class="ap-name" style="color:${PLAYER_COLORS[p]}">${p}</div>
+      <div class="ap-score" style="color:${PLAYER_COLORS[p]}">${totals[p]}</div>
     </div>`).join('');
+  return `<div class="archive-card" onclick="viewArchivedMatch('${session.id}')">
+    <div class="archive-card-top">
+      <div>
+        <div class="archive-date">${date}</div>
+        <div class="archive-name">${session.label||'Scramble Match'}</div>
+      </div>
+      <div class="archive-arrow">→</div>
+    </div>
+    <div class="archive-rounds">
+      <span class="round-pill ${r1done>0?'done':''}">R1: ${r1done}/18</span>
+      <span class="round-pill ${r2done>0?'done':''}">R2: ${r2done}/18</span>
+    </div>
+    ${hasData?`<div class="archive-players">${playersHtml}</div>
+      <div class="archive-leader-badge">🏆 ${leader} led with ${totals[leader]} shots</div>`:''}
+  </div>`;
 }
 
-function renderChart() {
-  const canvas = document.getElementById('scoreChart');
-  if (!canvas) return;
+async function viewArchivedMatch(sessionId) {
+  if (!db) return;
+  const { data: scores } = await db.from('hole_scores').select('*').eq('session_id', sessionId);
+  const { data: session } = await db.from('sessions').select('*').eq('id', sessionId).single();
+  const archiveRoundData = {};
+  (scores||[]).forEach(row=>{
+    if(!archiveRoundData[row.round])archiveRoundData[row.round]={};
+    archiveRoundData[row.round][row.hole]={drives:row.drives||[],approach:row.approach||[],chips:row.chips||[],putts:row.putts||[],done:row.done||false};
+  });
+  viewSummary(archiveRoundData, session);
+}
+
+// ══════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════
+function getHoleOrder(round){const s=parseInt(roundStartHoles[round])||1;const o=[];for(let i=0;i<18;i++)o.push(((s-1+i)%18)+1);return o;}
+
+function buildChartData(round, data) {
+  const rd = data || roundData;
+  if(!rd[round]||Object.keys(rd[round]).length===0)return null;
+  const holes=getHoleOrder(round);
+  const datasets=PLAYERS.map(player=>{
+    let cum=0;
+    const d=holes.map(h=>{const hd=rd[round]&&rd[round][h];if(!hd)return null;
+      let cnt=0;CATEGORIES.forEach(c=>{if(hd[c.key])cnt+=hd[c.key].filter(p=>p===player).length;});cum+=cnt;return cum;});
+    return{label:player,data:d,borderColor:PLAYER_COLORS[player],backgroundColor:PLAYER_COLORS[player],
+      borderWidth:2.5,pointRadius:3.5,pointBackgroundColor:PLAYER_COLORS[player],tension:.3,fill:false,spanGaps:true};
+  });
+  return{labels:holes,datasets};
+}
+
+const CHART_OPTS={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',
+  labels:{color:'rgba(255,255,255,.65)',font:{size:10,family:'Inter'},boxWidth:9,padding:8}}},
+  scales:{x:{ticks:{color:'rgba(255,255,255,.4)',font:{size:9}},grid:{color:'rgba(255,255,255,.05)'}},
+    y:{beginAtZero:true,ticks:{color:'rgba(255,255,255,.4)',font:{size:9},stepSize:1},grid:{color:'rgba(255,255,255,.05)'}}}};
+
+function renderScoreboard(round){
+  const el=document.getElementById('scoreboard');if(!el)return;
+  const totals={};PLAYERS.forEach(p=>totals[p]=0);
+  if(roundData[round])for(const h of Object.keys(roundData[round])){const hd=roundData[round][h];CATEGORIES.forEach(c=>{if(hd[c.key])hd[c.key].forEach(p=>{if(totals[p]!==undefined)totals[p]++;});});}
+  const sorted=PLAYERS.slice().sort((a,b)=>totals[b]-totals[a]);
+  const ranks={};sorted.forEach((p,i)=>{if(i>0&&totals[p]===totals[sorted[i-1]])ranks[p]=ranks[sorted[i-1]];else ranks[p]=i+1;});
+  const rl={1:'1ST 🥇',2:'2ND',3:'3RD',4:'4TH'};
+  el.innerHTML=PLAYERS.map(p=>`<div class="sb-player ${ranks[p]===1?'leader':''}">
+    <div class="sb-name" style="color:${PLAYER_COLORS[p]}">${p}</div>
+    <div class="sb-score" style="color:${PLAYER_COLORS[p]}">${totals[p]}</div>
+    <div class="sb-rank">${rl[ranks[p]]||''}</div></div>`).join('');
+}
+
+function renderChart(){
+  const canvas=document.getElementById('scoreChart');if(!canvas)return;
   renderScoreboard(currentRound);
-  const chartData = buildChartData(currentRound);
-  if (!chartData) {
-    if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
-    return;
-  }
-  if (scoreChart) { scoreChart.data = chartData; scoreChart.update(); return; }
-  scoreChart = new Chart(canvas, { type: 'line', data: chartData, options: chartOptions });
+  const cd=buildChartData(currentRound);
+  if(!cd){if(scoreChart){scoreChart.destroy();scoreChart=null;}return;}
+  if(scoreChart){scoreChart.data=cd;scoreChart.update();return;}
+  scoreChart=new Chart(canvas,{type:'line',data:cd,options:CHART_OPTS});
 }
 
-function renderSummaryChart(round, canvasId) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const chartData = buildChartData(round);
-  if (!chartData) return;
-  new Chart(canvas, { type: 'line', data: chartData, options: chartOptions });
+function renderSummaryChart(round,cid,data){
+  const canvas=document.getElementById(cid);if(!canvas)return;
+  const cd=buildChartData(round,data);if(!cd)return;
+  new Chart(canvas,{type:'line',data:cd,options:CHART_OPTS});
 }
 
-// ─── Init ─────────────────────────────────────────────────────
-
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
 async function init() {
-  await loadFromSupabase();
-  subscribeToRealtime();
-
-  for (const round of [1, 2]) {
-    if (!roundData[round] || Object.keys(roundData[round]).length === 0) continue;
-    if (getCompletedCount(round) >= 18) continue;
-    currentRound = round;
-    const inProgress = findInProgressHole(round);
-    if (inProgress !== null) {
-      currentHole = inProgress;
-    } else {
-      const start = parseInt(roundStartHoles[round]) || 1;
-      const rd = roundData[round];
-      currentHole = start;
-      for (let i = 0; i < 18; i++) {
-        const h = ((start - 1 + i) % 18) + 1;
-        if (!rd[h] || !rd[h].done) { currentHole = h; break; }
+  showScreen('setup');
+  if (currentSessionId) {
+    await loadFromSupabase();
+    subscribeToRealtime();
+    // Check if there's an in-progress hole to auto-resume
+    for(const round of[1,2]){
+      if(!roundData[round]||Object.keys(roundData[round]).length===0)continue;
+      if(getCompletedCount(round)>=18)continue;
+      currentRound=round;
+      const ip=findInProgressHole(round);
+      if(ip!==null){currentHole=ip;}
+      else{const s=parseInt(roundStartHoles[round])||1;currentHole=s;
+        for(let i=0;i<18;i++){const h=((s-1+i)%18)+1;if(!roundData[round][h]||!roundData[round][h].done){currentHole=h;break;}}
       }
+      return loadHoleAndShow();
     }
-    loadHoleAndShow();
-    return;
   }
-  showPreviousResults();
+  renderSetup();
 }
 
 init();
